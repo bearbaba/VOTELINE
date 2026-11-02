@@ -8,7 +8,7 @@ const TABLE={
   get_mandate:['id'],get_proposal:['id'],get_assessment:['id','id'],
   authorization:['id','id','address'],totals:[]}},
  gate:{address:process.env.VOTELINE_BALLOT_ADDRESS||'',methods:{
-  get_ballot:['id'],ballot_for:['id','id'],mandate_usage:['id'],stats:[]}}
+  get_ballot:['id'],ballot_for:['id','id'],member_ballot_for:['address','id'],mandate_usage:['id'],stats:[]}}
 };
 const valid=()=>Object.values(TABLE).every(x=>ADDRESS.test(x.address))&&TABLE.registry.address.toLowerCase()!==TABLE.gate.address.toLowerCase();
 const clean=e=>JSON.parse(JSON.stringify(e,(_key,v)=>typeof v==='bigint'?v.toString():v));

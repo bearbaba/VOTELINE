@@ -170,15 +170,19 @@ async function preflightWrite(f, values, actor) {
     if(method==='update_mandate'&&values[1]===m.policy)throw Error('Replacement policy must differ from the current version.');
   }
   if(method==='cast_vote'){
-    const [auth,already,usage]=await Promise.all([
+    const [auth,already,usage,mandate,memberExisting]=await Promise.all([
       api('registry','authorization',[values[0],values[1],actor]),
       api('gate','ballot_for',[values[0],values[1]]),
-      api('gate','mandate_usage',[values[0]])
+      api('gate','mandate_usage',[values[0]]),
+      api('registry','get_mandate',[values[0]]),
+      api('registry','get_mandate',[values[0]]).then(m=>api('gate','member_ballot_for',[m.owner,values[1]]))
     ]);
     if(!auth?.allowed||auth?.decision!=='ALIGNED')throw Error('No current ALIGNED authorization for this delegate and proposal.');
     if(auth.delegate?.toLowerCase()!==addr||auth.direction!==values[2])
       throw Error('Connected delegate or vote direction does not match the signed mandate.');
     if(already)throw Error('This mandate already voted on this proposal; duplicate blocked.');
+    if(memberExisting)throw Error('Member already voted on this proposal through another mandate.');
+    if(mandate.owner?.toLowerCase()!==auth.owner?.toLowerCase())throw Error('Registry member mismatch.');
     if(Number(usage)>=auth.max_votes)throw Error('Delegation vote cap reached.');
   }
 }
@@ -313,8 +317,8 @@ async function handleRead(){
   const primary=numberField($('readId').value||'1');
   const secondary=numberField($('readOther').value||'1');
   const actor=$('readActor').value.trim();
-  const args=r[3]==='none'?[]:r[3]==='id'?[primary]:r[3]==='two'?[primary,secondary]:[primary,secondary,actor];
-  if(r[3]==='actor'&&!ADDRESS.test(actor))throw Error('Enter a wallet address for this live authorization read');
+  const args=r[3]==='none'?[]:r[3]==='id'?[primary]:r[3]==='two'?[primary,secondary]:r[3]==='member'?[actor,secondary]:[primary,secondary,actor];
+  if((r[3]==='actor'||r[3]==='member')&&!ADDRESS.test(actor))throw Error('Enter a wallet address for this live authorization read');
   const result=await api(r[1],r[2],args);
   $('readResult').textContent=JSON.stringify(result,null,2);
 }

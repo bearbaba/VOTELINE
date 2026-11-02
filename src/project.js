@@ -27,6 +27,6 @@ export const project = {
  reads:[
   ["Mandate","registry","get_mandate","id"],["Proposal","registry","get_proposal","id"],
   ["AI assessment","registry","get_assessment","two"],["Live authorization","registry","authorization","actor"],
-  ["Ballot","gate","get_ballot","id"],["Ballot for pair","gate","ballot_for","two"],["Totals","registry","totals","none"],["Ballot stats","gate","stats","none"]
+  ["Ballot","gate","get_ballot","id"],["Ballot for pair","gate","ballot_for","two"],["Member ballot","gate","member_ballot_for","member"],["Totals","registry","totals","none"],["Ballot stats","gate","stats","none"]
  ]
 };
