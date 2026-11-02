@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.mjs",
-    "preflight": "node scripts/preflight.mjs"
+    "preflight": "node scripts/preflight.mjs",
+    "schema:studionet": "node scripts/schema-check.mjs"
   },
   "dependencies": {
     "genlayer-stable": "npm:genlayer-js@1.1.8"
