@@ -2,6 +2,6 @@
   "network": "GenLayer Studionet",
   "chainId": 61999,
   "registry": "0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23",
-  "ballot": null,
-  "note": "Registry address supplied from user's Studio deployment. Verify with workflow. Do not publish Gate address before actual deployment."
+  "ballot": "0x600dB69aA8cb83Fc469597b20864ed95fdeF2324",
+  "note": "Both Studio deployments supplied by project owner; verify deployed sources and live cross-contract binding using GitHub Actions before signing."
 }

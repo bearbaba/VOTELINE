@@ -17,14 +17,14 @@ for(const [label,path,method] of names){
  try{
   const address=addresses[label];
   const local=readFileSync(path,'utf8');
-  const deployed=await c.getContractCode({address});
+  const deployed=await c.getContractCode(address);
   if(typeof deployed!=='string'||!deployed.startsWith('# { "Depends"'))
    throw Error('No valid deployed source returned');
   const exact=local===deployed,normalized=normalize(local)===normalize(deployed);
   console.log(label,'address',address,'source exact bytes',exact,'normalized match',normalized,
    'local SHA-256',sha(local),'deployed SHA-256',sha(deployed));
   if(!normalized)throw Error('DEPLOYED SOURCE DOES NOT MATCH REPOSITORY');
-  const schema=await c.getContractSchema({address});
+  const schema=await c.getContractSchema(address);
   if(!schema||!Object.keys(schema.methods||{}).length)throw Error('Deployed methods unavailable');
   const value=await c.readContract({address,functionName:method,args:[],transactionHashVariant:TransactionHashVariant.LATEST_FINAL});
   console.log(label,'schema methods',Object.keys(schema.methods),'LATEST_FINAL',value);

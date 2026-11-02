@@ -1,0 +1,20 @@
+name: Verify VOTELINE deployed contracts
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  verify-deployments:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Verify both deployed codes, schemas, on-chain link and finalized reads
+        run: npm run preflight
+        env:
+          VOTELINE_REGISTRY_ADDRESS: 0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23
+          VOTELINE_BALLOT_ADDRESS: 0x600dB69aA8cb83Fc469597b20864ed95fdeF2324
