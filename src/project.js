@@ -19,7 +19,9 @@ export const project = {
   fields:[["mandate_id","Mandate ID","number"],["proposal_id","Proposal ID","number"]]},
   {key:"cast_vote",title:"4. Cast delegated ballot",subtitle:"ONLY the assigned delegate wallet → Ballot. Requires current ALIGNED decision and unused vote cap.",scope:"gate",method:"cast_vote",
   fields:[["mandate_id","Mandate ID","number"],["proposal_id","Proposal ID","number"],["choice","Vote direction","select:FOR,AGAINST"]]},
-  {key:"revoke_mandate",title:"5. Revoke future delegation",subtitle:"Owner-only; previously cast ballots remain historical records.",scope:"registry",method:"revoke_mandate",
+  {key:"update_mandate",title:"5. Revise delegation policy",subtitle:"Original member only. Bumps version; previous AI assessments cannot authorize new ballots.",scope:"registry",method:"update_mandate",
+  fields:[["mandate_id","Mandate ID","number"],["new_policy","Replacement policy","textarea"]]},
+  {key:"revoke_mandate",title:"6. Revoke future delegation",subtitle:"Owner-only; previously cast ballots remain historical records.",scope:"registry",method:"revoke_mandate",
   fields:[["mandate_id","Mandate ID","number"]]}
  ],
  reads:[
