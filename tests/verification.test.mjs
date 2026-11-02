@@ -24,7 +24,8 @@ test('ballot receipt must match signer, pair, choice',()=>{
  assert.equal(verifyStored(r,{id:1,mandate_id:1,proposal_id:2,actor:'0xbad',choice:'FOR'}),false);
 });
 test('AI outcome must be stored (no PENDING accepted)',()=>{
- assert.equal(verifyStored({method:'assess',args:[1,2]},{mandate_id:1,proposal_id:2,decision:'REVIEW'}),true);
+ assert.equal(verifyStored({method:'assess',args:[1,2],prior:3},{mandate_id:1,proposal_id:2,mandate_version:3,decision:'REVIEW'}),true);
+ assert.equal(verifyStored({method:'assess',args:[1,2],prior:3},{mandate_id:1,proposal_id:2,mandate_version:2,decision:'ALIGNED'}),false);
  assert.equal(verifyStored({method:'assess',args:[1,2]},{mandate_id:1,proposal_id:2,decision:'PENDING'}),false);
  assert.equal(verifyStored({method:'adjudicate',args:[1]},{id:1,stage:'DECIDED',verdict:'UNVERIFIABLE'}),true);
 });

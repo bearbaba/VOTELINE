@@ -144,6 +144,52 @@ function argValues(f){
    return v;
  });
 }
+async function preflightWrite(f, values, actor) {
+  const method=f.method;
+  const addr=actor.toLowerCase();
+  if(method==='create_mandate'){
+    if(values[0].toLowerCase()===addr)throw Error('Delegate must be a different wallet.');
+    if(values[3]<1||values[3]>20)throw Error('Maximum ballot uses must be 1–20.');
+  }
+  if(method==='create_proposal' && values[2]>1000000000)
+    throw Error('Declared budget exceeds the contract limit.');
+  if(method==='assess'){
+    const [m,p,previous]=await Promise.all([
+      api('registry','get_mandate',[values[0]]),
+      api('registry','get_proposal',[values[1]]),
+      api('registry','get_assessment',[values[0],values[1]])
+    ]);
+    if(!m.active)throw Error('Mandate was revoked. No AI assessment can be signed.');
+    if(!p?.id)throw Error('Proposal not found.');
+    if(previous?.mandate_version===m.version)throw Error('Already adjudicated for the active mandate version.');
+  }
+  if(method==='update_mandate'||method==='revoke_mandate'){
+    const m=await api('registry','get_mandate',[values[0]]);
+    if(m.owner?.toLowerCase()!==addr)throw Error('Only the original member can change this mandate.');
+    if(!m.active)throw Error('Mandate is already revoked.');
+    if(method==='update_mandate'&&values[1]===m.policy)throw Error('Replacement policy must differ from the current version.');
+  }
+  if(method==='cast_vote'){
+    const [auth,already,usage]=await Promise.all([
+      api('registry','authorization',[values[0],values[1],actor]),
+      api('gate','ballot_for',[values[0],values[1]]),
+      api('gate','mandate_usage',[values[0]])
+    ]);
+    if(!auth?.allowed||auth?.decision!=='ALIGNED')throw Error('No current ALIGNED authorization for this delegate and proposal.');
+    if(auth.delegate?.toLowerCase()!==addr||auth.direction!==values[2])
+      throw Error('Connected delegate or vote direction does not match the signed mandate.');
+    if(already)throw Error('This mandate already voted on this proposal; duplicate blocked.');
+    if(Number(usage)>=auth.max_votes)throw Error('Delegation vote cap reached.');
+  }
+}
+function confirmWrite(f,values,actor,address) {
+  const argText=f.fields.map((fld,i)=>fld[0]+': '+String(values[i]).slice(0,190)).join('\n');
+  return window.confirm('REVIEW GENLAYER TESTNET TRANSACTION\n\n'+
+    'Method: '+f.method+'\nWallet: '+actor+'\nContract: '+address+
+    '\nNetwork: GenLayer Studionet (61999)\n\n'+argText+
+    '\n\nOnly approve if the wallet, contract and arguments are correct. This is a REAL on-chain testnet write.');
+}
+
 async function startSign(f) {
   if(busy)return;
   const prior=loadPending();
@@ -160,11 +206,18 @@ async function startSign(f) {
     }
     const contract=config[f.scope];
     if(!ADDRESS.test(contract||''))throw Error('Configured contract address unavailable');
-    const sender=await ensureWallet();
-    const record={form:f.key,scope:f.scope,method:f.method,args:values,actor:account.toLowerCase(),hash:'',prior:null};
-    if(f.key==='update_mandate'){
+    await ensureWallet();
+    const activeWallet=account.toLowerCase();
+    await preflightWrite(f,values,activeWallet);
+    const record={form:f.key,scope:f.scope,method:f.method,args:values,actor:activeWallet,hash:'',prior:null};
+    if(f.key==='update_mandate'||f.key==='assess'){
       record.prior=(await api('registry','get_mandate',[values[0]])).version;
     }
+    if(!confirmWrite(f,values,activeWallet,contract)){
+      notice('Transaction not signed','Review cancelled. No transaction sent.');
+      return;
+    }
+    const sender=createClient({chain:studionet,account,provider:window.ethereum});
     setBusy(true);
     notice('Confirm in wallet','Review '+f.method+' and the destination contract. No tx has been broadcast yet.',1);
     const hash=await sender.writeContract({address:contract,functionName:f.method,args:values,value:0n});
@@ -274,12 +327,18 @@ async function refreshConfig(){
     const r=await fetch('/api/state?op=config',{cache:'no-store'});
     config=await r.json();
     if(!r.ok)throw Error('Config unavailable');
-    $('network').textContent=config.configured?'Studionet 61999 · addresses configured':'Studio deployment pending';
+    if(config.configured){
+      const [totals,ballot]=await Promise.all([api('registry','totals'),api('gate','stats')]);
+      if(!Number.isSafeInteger(totals?.mandates)||!Number.isSafeInteger(totals?.proposals)||
+         ballot?.registry?.toLowerCase()!==config.registry.toLowerCase())
+        throw Error('Studio preflight failed: missing finalized state or ballot registry link mismatch.');
+    }
+    $('network').textContent=config.configured?'Studionet 61999 · live contracts verified':'Studio deployment pending';
     $('network').classList.toggle('pending',!config.configured);
     if(!config.configured)notice('Waiting for Studio deployment','Both contracts need deployment, addresses and readback preflight before wallet signing.');
   }catch(e){
     config={configured:false};
-    $('network').textContent='RPC / config unavailable';
+    $('network').textContent='RPC / deployment unverified';
     $('network').classList.add('pending');
     notice('Unavailable',e.message);
   }
