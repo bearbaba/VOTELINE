@@ -19,8 +19,9 @@ A member signs an intent-scoped delegation mandate with an allowed direction and
 | Create proposal | MandateRegistry.create_proposal | title, details, budget_units | int proposal ID with immutable proposer and details |
 | AI decision | MandateRegistry.assess | mandate ID, proposal ID | ALIGNED / CONFLICT / REVIEW; stores version-bound JSON assessment |
 | Read authorization | MandateRegistry.authorization | mandate ID, proposal ID, actor | JSON with allowed, direction, version, cap, decision |
-| Record delegated ballot | DelegatedBallot.cast_vote | mandate ID, proposal ID, choice | int ballot ID; one-per-pair and per-mandate cap checked |
+| Record delegated ballot | DelegatedBallot.cast_vote | mandate ID, proposal ID, choice | int ballot ID; one-per-member/proposal, one-per-mandate/proposal and vote cap checked |
 | Inspect ballot | DelegatedBallot.ballot_for | mandate ID, proposal ID | JSON ballot or empty string |
+| Member uniqueness | DelegatedBallot.member_ballot_for | member wallet, proposal ID | JSON ballot or empty string; blocks repeated member participation across mandates |
 | Inspect current policy | MandateRegistry.get_mandate | mandate ID | JSON mandate with owner/version/policy/active |
 | Inspect proposal | MandateRegistry.get_proposal | proposal ID | JSON proposer/title/details/budget |
 | Inspect decision | MandateRegistry.get_assessment | mandate ID, proposal ID | version-bound JSON or empty string |

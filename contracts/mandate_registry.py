@@ -164,7 +164,7 @@ class MandateRegistry(gl.Contract):
                      and decision["decision"] == "ALIGNED")
         return canonical({
             "allowed": valid, "mandate_id": mandate_id, "proposal_id": proposal_id,
-            "delegate": m["delegate"], "direction": m["direction"],
+            "owner": m["owner"], "delegate": m["delegate"], "direction": m["direction"],
             "max_votes": m["max_votes"], "version": m["version"],
             "decision": decision["decision"] if decision else "PENDING"
         })
