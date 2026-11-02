@@ -1,12 +1,8 @@
-# VOTELINE — Studio acceptance runbook
+# VOTELINE — Studio runbook
 
-Target GenLayer **Studionet chain 61999** at https://studio.genlayer.com. Never reuse Studio Dev chain 61997 contract addresses.
+Both contracts are deployed and cross-contract link verified. **Do not redeploy.** For the definitive Studio-first execution plan, test fixtures, wallets, actual/expected result rules and final one-video acceptance, see **[STUDIO_ACCEPTANCE_VI.md](STUDIO_ACCEPTANCE_VI.md)**.
 
-1. Open contracts/mandate_registry.py in Studio. Validate available schema and deploy its no-argument constructor; save exact source, deployed address, accepted TX hash, and FINALIZED / successful execution.
-2. Deploy contracts/delegated_ballot.py SECOND, passing the exact Registry address as registry_address. Inspect stats() and confirm registry matches. Do not deploy in reverse order.
-3. In the Vercel project configure server-only VOTELINE_REGISTRY_ADDRESS and VOTELINE_BALLOT_ADDRESS, redeploy once, then inspect /api/state?op=config and read finalized totals/stats. Run npm run preflight locally with the same addresses.
-4. Use three different wallets (member, proposer, delegate), test GEN for each. On the website, sign create_mandate, create_proposal, assess and cast_vote. Confirm both TX execution and stored state. The AI output may be REVIEW; do not fabricate ALIGNED.
-5. Repeat for CONFLICT and REVIEW, wrong delegate, wrong choice, duplicate mandate/proposal, duplicate member/proposal across multiple mandates and max_votes cap. Test owner revocation blocks future ballot authorization, while earlier ballots remain stored.
-6. Preserve exact transaction hashes, rejected attempts, contract source hashes, screenshot/video and reproducible evidence. Only then mark it submission ready.
-
-No fake transaction data or pre-filled on-chain IDs.
+- Registry: `0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23`
+- Ballot: `0x600dB69aA8cb83Fc469597b20864ed95fdeF2324`
+- Website: https://voteline.vercel.app/
+- Actual signed AI verdicts, ballot receipts and negative rollback evidence: **PENDING**.

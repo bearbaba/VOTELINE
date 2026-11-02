@@ -1,9 +1,16 @@
 # VOTELINE — GenLayer Project Reviewer Guide
 
-**Status: source / unsigned preflight phase. No contract has been deployed or signed from this repository yet.**
+**Status: both Intelligent Contracts deployed on GenLayer Studionet 61999; deployed source/schema and cross-contract Registry link verified. Signed application test cases and video are pending — no AI verdict or ballot receipt is claimed yet.**
 
 Project: https://github.com/bearbaba/VOTELINE
 Network: Studionet 61999. Studio 61997 is not compatible.
+
+- Website: https://voteline.vercel.app/
+- Registry: https://explorer-studio.genlayer.com/address/0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23
+- Ballot: https://explorer-studio.genlayer.com/address/0x600dB69aA8cb83Fc469597b20864ed95fdeF2324
+- Source + cross-contract binding proof: https://github.com/bearbaba/VOTELINE/actions/runs/41485210872
+- Live site/API smoke: https://github.com/bearbaba/VOTELINE/actions/runs/41486261577
+- Full Studio-first acceptance fixtures: [STUDIO_ACCEPTANCE_VI.md](STUDIO_ACCEPTANCE_VI.md)
 
 ## Why this is a Project, not only an AI prompt
 
