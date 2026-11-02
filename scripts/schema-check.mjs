@@ -5,7 +5,7 @@ for(const [name,path,methods] of contracts){
  try{
   const code=readFileSync(path,'utf8');
   if(!code.startsWith('# { "Depends": "py-genlayer:'))throw Error('Missing first-line pinned Depends header');
-  const payload={jsonrpc:'2.0',id:1,method:'gen_getContractSchema',params:[{code:Buffer.from(code,'utf8').toString('base64')}]};
+  const payload={jsonrpc:'2.0',id:1,method:'gen_getContractSchema',params:[Buffer.from(code,'utf8').toString('base64')]};
   const response=await fetch(RPC,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)});
   if(!response.ok)throw Error('RPC HTTP '+response.status);
   const j=await response.json();
