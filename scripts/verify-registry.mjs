@@ -13,12 +13,12 @@ assert(/^0x[a-fA-F0-9]{40}$/.test(registry),'Missing/invalid Registry address');
 const client=createClient({chain:studionet});
 const local=readFileSync('contracts/mandate_registry.py','utf8');
 console.log('Checking registry on Studionet 61999:',registry);
-const live=await client.getContractCode({address:registry});
+const live=await client.getContractCode(registry);
 assert(typeof live==='string'&&live.length>150,'Deployed code unavailable');
 console.log('Local source SHA256:   ',sha(local));
 console.log('Deployed source SHA256:',sha(live));
 assert(normalize(live)===normalize(local),'DEployed source mismatch: DO NOT deploy second contract');
-const schema=await client.getContractSchema({address:registry});
+const schema=await client.getContractSchema(registry);
 const methods=schema?.methods||{};
 for(const name of ['create_mandate','create_proposal','assess','authorization','get_mandate','get_proposal','get_assessment','update_mandate','revoke_mandate','totals']){
  assert(Object.hasOwn(methods,name),'Missing deployed method: '+name);
