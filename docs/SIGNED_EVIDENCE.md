@@ -25,6 +25,8 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 | Delegate `cast_vote(1,2,"FOR")` against a CONFLICT proposal | [0xea0e…bdd7](https://explorer-studio.genlayer.com/tx/0xea0eb6630d072dc3516760168f5cd32d490d74accdc0384a66c0b9e833a8bdd7) | FINALIZED / **ERROR / ROLLBACK**; Consensus Accepted | `no current delegated authorization`; `stats().ballots` post-rollback verified **1** |
 
+| `create_proposal` → proposal **3** (education, budget=150, licensing/attribution/advertising details unconfirmed) | [0x059e…fe36](https://explorer-studio.genlayer.com/tx/0x059e2322aaa4489a19c15931ee4fc9a0d5372d3aade0f8d6069501621a92fe36) | FINALIZED / SUCCESS / Consensus Accepted | Return Value=3. `assess(1,3)` AI verdict **PENDING**, target REVIEW; no ballot authorization asserted. |
+
 **Result:** Signed positive cross-contract ballot and one signed duplicate-rejection negative test are supported. Consensus Accepted on a rejected transaction does **not** imply the write succeeded. The error is the expected test outcome.
 
 **Authorization readback (Nov 3, 2026):** `MandateRegistry.authorization(1,2,0xD6b8A3A5eB329410D9504784812b8569afA8C2aF)` returned `allowed=false`, `decision=CONFLICT`, `direction=FOR`, `max_votes=1`, `version=1`. This is a successful **read-only deny** check. The signed `DelegatedBallot.cast_vote(1,2,"FOR")` attempt subsequently **rolled back** with `no current delegated authorization` (see transaction table). Post-rollback `stats()` readback verified `ballots=1`.
