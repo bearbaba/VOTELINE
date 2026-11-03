@@ -13,6 +13,8 @@ const html=await get('/');
 check(html.includes('VOTELINE — Delegation with proof'),'VOTELINE page title missing');
 check(html.includes('id="proofGrid"') && html.includes('id="forms"') && html.includes('id="walletBtn"'),
   'Core VOTELINE proof, workflow or wallet UI missing');
+check(html.includes('id="historyList"') && html.includes('data-page="history"'),
+  'My Activity page missing from the public website');
 const config=JSON.parse(await get('/api/state?op=config'));
 check(config.configured&&config.chainId===61999,'Config missing or wrong chain');
 check(config.registry.toLowerCase()===expected.registry.toLowerCase(),'Registry address mismatch');

@@ -2,6 +2,7 @@ import './style.css';
 import { project, evidence } from './project.js';
 import { classifyTx, parseValue, verifyStored } from '../lib/verification.js';
 import {txStage,elapsedLabel} from '../lib/tx-progress.js';
+import {recentRecordIds,belongsToWallet,validReceiptForWallet} from '../lib/activity.js';
 import { runWorkerA, runWorkerB } from '../lib/workers.js';
 import { createClient } from 'genlayer-stable';
 import { studionet } from 'genlayer-stable/chains';
@@ -10,9 +11,11 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const explorer = 'https://explorer-studio.genlayer.com/tx/';
 const pendingKey = project.id + '-pending-tx-v1';
+const receiptKey = project.id + '-local-receipts-v1';
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const CHAIN = 61999;
 let config = null, account = '', busy = false, checking = false;
+let activityRequest=0, activityLimit=30;
 
 function notice(title, detail, phase=0, hash='', state='idle') {
   $('txTitle').textContent = title;
@@ -33,14 +36,144 @@ function setBusy(v) {
   document.querySelectorAll('button[data-sign]').forEach(b=>b.disabled=v||!config?.configured);
 }
 function showPage(name) {
-  for(const p of ['overview','workflow','verify']) $(p).hidden = p!==name;
+  for(const p of ['overview','workflow','history','verify']) $(p).hidden = p!==name;
   for(const e of document.querySelectorAll('[data-page]')) e.classList.toggle('active',e.dataset.page===name);
   $('breadcrumb').textContent=name[0].toUpperCase()+name.slice(1);
   if(location.hash!=='#'+name) history.replaceState(null,'','#'+name);
+  if(name==='history')renderMyActivity();
 }
 for(const e of document.querySelectorAll('[data-page]'))
   e.addEventListener('click',()=>{showPage(e.dataset.page);window.scrollTo(0,0)});
 window.addEventListener('hashchange',()=>showPage(location.hash.slice(1)||'overview'));
+
+
+function readReceipts(){
+ try{
+  const data=JSON.parse(localStorage.getItem(receiptKey)||'[]');
+  return Array.isArray(data)?data:[];
+ }catch{return []}
+}
+function saveReceipt(record,status,id){
+ if(!/^0x[0-9a-fA-F]{64}$/.test(record?.hash||'')||!ADDRESS.test(record?.actor||''))return;
+ try{
+  const previous=readReceipts().filter(x=>x?.hash!==record.hash);
+  const entry={
+   hash:record.hash,actor:record.actor,method:String(record.method||'unknown').slice(0,40),
+   createdAt:record.startedAt||Date.now(),status,
+   recordId:Number.isSafeInteger(id)&&id>0?id:null
+  };
+  localStorage.setItem(receiptKey,JSON.stringify([entry,...previous].slice(0,80)));
+  if(!$('history').hidden)renderSavedReceipts();
+ }catch{/* Storage may be disabled; on-chain records remain accessible. */}
+}
+function renderSavedReceipts(){
+ const root=$('historyReceipts');
+ if(!root)return;
+ const wallet=account.toLowerCase();
+ if(!ADDRESS.test(wallet)){root.innerHTML='<p>Connect your wallet to see receipts signed in this browser.</p>';return;}
+ const receipts=readReceipts().filter(r=>validReceiptForWallet(r,wallet)).slice(0,30);
+ root.innerHTML=receipts.length?receipts.map(r=>{
+  const date=Number.isFinite(r.createdAt)?new Date(r.createdAt).toLocaleString():'Date unavailable';
+  const status=['VERIFIED','FAILED','PENDING','UNVERIFIED'].includes(r.status)?r.status:'UNVERIFIED';
+  const id=Number.isSafeInteger(r.recordId)&&r.recordId>0?' #'+r.recordId:'';
+  return '<div class="historyReceipt"><div><strong>'+esc(r.method)+esc(id)+' · '+esc(status)+'</strong>'+
+   '<small>'+esc(date)+' · '+esc(r.hash.slice(0,10))+'…'+esc(r.hash.slice(-8))+'</small></div>'+
+   '<a target="_blank" rel="noopener" href="'+explorer+esc(r.hash)+'">Explorer ↗</a></div>';
+ }).join(''):'<p>No signed transactions have been saved in this browser for this wallet yet. On-chain records above are still available.</p>';
+}
+async function scanActivity(scope,method,count,kind,wallet,limit){
+ const ids=recentRecordIds(count,limit);
+ const rows=[];let errors=0,next=0;
+ await Promise.all(Array.from({length:Math.min(4,ids.length)},async()=>{
+  while(next<ids.length){
+   const id=ids[next++];
+   try{
+    const item=await api(scope,method,[id]);
+    if(belongsToWallet(kind,item,wallet))rows.push(item);
+   }catch{errors++;}
+  }
+ }));
+ rows.sort((a,b)=>b.id-a.id);
+ return {rows,errors};
+}
+function displayHistoryGroup(label,items,kind){
+ const fmt=item=>{
+  if(kind==='mandate')return 'Delegate '+String(item.delegate||'').slice(0,8)+'…'+String(item.delegate||'').slice(-4)+
+   ' · '+item.direction+' · Cap '+item.max_votes+' · '+(item.active?'Active':'Revoked');
+  if(kind==='proposal')return 'Budget '+item.budget_units+' units · '+String(item.title||'');
+  return 'Proposal #'+item.proposal_id+' · Mandate #'+item.mandate_id+
+   ' · '+item.choice+' · '+(String(item.actor).toLowerCase()===account.toLowerCase()?'Signed by delegate':'Represented member');
+ };
+ const method=kind==='mandate'?'get_mandate':kind==='proposal'?'get_proposal':'get_ballot';
+ return '<section class="historyGroup"><h2>'+esc(label)+' <span>'+items.length+'</span></h2>'+
+  (items.length?items.map(item=>
+   '<div class="historyEntry"><strong>'+esc(kind==='mandate'?'Mandate':kind==='proposal'?'Proposal':'Ballot')+
+   ' #'+esc(item.id)+'</strong><p>'+esc(fmt(item))+'</p>'+
+   '<button type="button" data-history-read="'+method+'" data-history-id="'+esc(item.id)+'">Read finalized state ↗</button></div>'
+  ).join(''):'<div class="historyEmpty">No matching records in the scanned range.</div>')+
+  '</section>';
+}
+async function renderMyActivity(){
+ const generation=++activityRequest;
+ const wallet=account.toLowerCase();
+ $('historyWallet').textContent=ADDRESS.test(wallet)?wallet:'Not connected';
+ renderSavedReceipts();
+ if(!ADDRESS.test(wallet)){
+  $('historyStatus').textContent='Connect your wallet using the button above.';
+  $('historyList').innerHTML='<div class="historyEmpty">Connect a wallet to load its finalized mandates, proposals and votes.</div>';
+  $('historyOlder').hidden=true;
+  return;
+ }
+ if(!config?.configured){
+  $('historyStatus').textContent='Waiting for the GenLayer contract connection.';
+  $('historyList').innerHTML='<div class="historyEmpty">The network is not ready. Refresh records once the network indicator is verified.</div>';
+  $('historyOlder').hidden=true;
+  return;
+ }
+ $('historyStatus').textContent='Checking latest-final on-chain records…';
+ $('historyList').innerHTML='<div class="historyEmpty">Loading wallet-scoped records automatically…</div>';
+ $('historyOlder').disabled=true;
+ try{
+  const [registry,gate]=await Promise.all([api('registry','totals'),api('gate','stats')]);
+  const [mandates,proposals,ballots]=await Promise.all([
+   scanActivity('registry','get_mandate',registry.mandates,'mandate',wallet,activityLimit),
+   scanActivity('registry','get_proposal',registry.proposals,'proposal',wallet,activityLimit),
+   scanActivity('gate','get_ballot',gate.ballots,'ballot',wallet,activityLimit)
+  ]);
+  if(generation!==activityRequest||wallet!==account.toLowerCase())return;
+  $('historyList').innerHTML=
+   displayHistoryGroup('My mandates',mandates.rows,'mandate')+
+   displayHistoryGroup('My proposals',proposals.rows,'proposal')+
+   displayHistoryGroup('My voting records',ballots.rows,'ballot');
+  const errors=mandates.errors+proposals.errors+ballots.errors;
+  const count=mandates.rows.length+proposals.rows.length+ballots.rows.length;
+  const hasOlder=[registry.mandates,registry.proposals,gate.ballots].some(n=>n>activityLimit);
+  $('historyStatus').textContent=count+' matching on-chain records · '+(errors?errors+' reads unavailable; results may be incomplete':'Latest-final data')+
+    (hasOlder?' · More older IDs available':'');
+  $('historyOlder').hidden=!hasOlder;
+  $('historyOlder').disabled=false;
+ }catch(e){
+  if(generation!==activityRequest)return;
+  $('historyStatus').textContent='Network query unavailable. No results inferred.';
+  $('historyList').innerHTML='<div class="historyEmpty">'+esc(e.message||'Unable to fetch finalized records')+'</div>';
+  $('historyOlder').hidden=true;
+  $('historyOlder').disabled=false;
+ }
+}
+$('historyRefresh').addEventListener('click',()=>renderMyActivity());
+$('historyOlder').addEventListener('click',()=>{activityLimit=Math.min(activityLimit+30,150);renderMyActivity()});
+$('historyList').addEventListener('click',event=>{
+ const button=event.target.closest('[data-history-read]');
+ if(!button)return;
+ const id=Number(button.dataset.historyId);
+ const method=button.dataset.historyRead;
+ const index=project.reads.findIndex(r=>r[2]===method);
+ if(!Number.isSafeInteger(id)||id<1||index<0)return;
+ $('readMethod').value=String(index);
+ $('readId').value=String(id);
+ updateReadFields();showPage('verify');
+ handleRead().catch(e=>{$('readResult').textContent='READ FAILED: '+e.message});
+});
 
 function renderMeta() {
   document.title=project.name+' — GenLayer Studionet';
@@ -125,6 +258,9 @@ for(const btn of document.querySelectorAll('[data-focus]')){
 }
 function updateAccount(v=''){
   account=v;
+  activityRequest++;
+  activityLimit=30;
+  if(!$('history').hidden)renderMyActivity();
   $('walletBtn').textContent=v?v.slice(0,6)+'…'+v.slice(-4)+' · Clear':'Connect wallet';
   $('walletBtn').title=v?'Clear local selection only. Revoke site permission in wallet settings.':'Connect an EIP-1193 wallet';
   $('walletIdentity').textContent=v?'Connected wallet: '+v:'No wallet connected.';
@@ -306,6 +442,7 @@ async function startSign(f) {
     record.hash=hash;
     record.startedAt=Date.now();
     sessionStorage.setItem(pendingKey,JSON.stringify(record));
+    saveReceipt(record,'PENDING');
     await follow(record);
   }catch(e){
     const pending=loadPending();
@@ -356,6 +493,7 @@ async function follow(record){
       }
       const phase=classifyTx(response);
       if(phase==='error'){
+        saveReceipt(record,'FAILED');
         sessionStorage.removeItem(pendingKey);
         notice('Transaction did not complete','Finalized execution failed or the transaction was canceled. The original hash remains available for investigation.',2,record.hash,'error');
         $('recheck').hidden=true;
@@ -369,6 +507,7 @@ async function follow(record){
           try{
             const proof=await verifyRecord(record);
             if(proof.ok){
+              saveReceipt(record,'VERIFIED',proof.id);
               sessionStorage.removeItem(pendingKey);
               notice('FINALIZED / VERIFIED',proof.message,3,record.hash,'success');
               $('recheck').hidden=true;
@@ -381,6 +520,7 @@ async function follow(record){
           }
           await new Promise(res=>setTimeout(res,3000));
         }
+        saveReceipt(record,'UNVERIFIED');
         notice('Finalized · record not verified','Execution finalized, but the stored state could not be confirmed. The hash is saved; do not submit again.',3,record.hash,'paused');
         $('recheck').textContent='Resume verification';
         $('recheck').hidden=false;
@@ -411,7 +551,7 @@ async function verifyRecord(record){
     const getter=method==='create_mandate'?'get_mandate':method==='create_proposal'?'get_proposal':'get_case';
     for(let id=totals[key];id>Math.max(0,totals[key]-20);id--){
       const x=await read(scope,getter,id);
-      if(verifyStored(record,x))return {ok:true,message:method+' recorded as #'+id+' with finalized state.'};
+      if(verifyStored(record,x))return {ok:true,id,message:method+' recorded as #'+id+' with finalized state.'};
     }
     return {ok:false};
   }
@@ -421,7 +561,7 @@ async function verifyRecord(record){
   }
   if(method==='cast_vote'){
     const x=await read('gate','ballot_for',a[0],a[1]);
-    if(verifyStored(record,x))return{ok:true,message:'Delegated ballot #'+x.id+' verified in the Ballot contract.'};
+    if(verifyStored(record,x))return{ok:true,id:x.id,message:'Delegated ballot #'+x.id+' verified in the Ballot contract.'};
   }
   if(method==='revoke_mandate'||method==='update_mandate'){
     const x=await read('registry','get_mandate',a[0]);
@@ -501,7 +641,7 @@ async function generateWorkerDraft(role) {
   }catch(e){notice('Could not generate artifact',e.message)}
 }
 $('recheck').onclick=async()=>{const record=loadPending();if(record)await follow(record);else notice('No pending transaction','No unresolved transaction hash is stored.')};
-renderMeta();renderForms();renderReads();showPage(['overview','workflow','verify'].includes(location.hash.slice(1))?location.hash.slice(1):'overview');
+renderMeta();renderForms();renderReads();showPage(['overview','workflow','history','verify'].includes(location.hash.slice(1))?location.hash.slice(1):'overview');
 const saved=loadPending();
 if(saved?.hash){
  restorePendingForm(saved);
@@ -511,9 +651,14 @@ if(saved?.hash){
 }
 refreshConfig().then(()=>{
  loadEvidence();
+ if(!$('history').hidden)renderMyActivity();
  const r=loadPending();
  if(r?.hash)follow(r);
 });
+// Read already-authorized EIP-1193 accounts without prompting for a new permission.
+window.ethereum?.request?.({method:'eth_accounts'}).then(a=>{
+ if(!account && ADDRESS.test(a?.[0]||''))updateAccount(a[0]);
+}).catch(()=>{});
 window.addEventListener('visibilitychange',()=>{
  if(!document.hidden && !checking){
   const r=loadPending();

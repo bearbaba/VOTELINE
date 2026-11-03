@@ -263,3 +263,41 @@ button.inlineLink{color:#9ae5d2}
 @media(prefers-reduced-motion:reduce){
  .activity[data-tx-state="pending"] .activitySpinner{animation-duration:2s}
 }
+
+/* Lightweight wallet-filtered history; dark VOTELINE colors. */
+.historyTop{
+ display:flex;align-items:center;justify-content:space-between;gap:18px;
+ background:#10212a;border:1px solid #29434a;border-radius:15px;
+ padding:21px 24px;margin:24px 0 18px;
+}
+.historyTop strong{display:block;overflow-wrap:anywhere;margin:8px 0 4px;font-size:14px;color:#e3fbf4}
+.historyTop p{color:#aac0c3;font-size:12px;margin:5px 0 0;line-height:1.6}
+.historyTop button{flex:none}
+.historySections{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.historyGroup{border:1px solid #29434a;border-radius:15px;background:#10212a;min-width:0;padding:18px}
+.historyGroup h2{font-size:14px;display:flex;justify-content:space-between;align-items:center;margin:1px 0 12px}
+.historyGroup h2 span{font-variant-numeric:tabular-nums;background:#1c3839;color:#a5e4d0;border-radius:18px;padding:4px 9px;font-size:11px}
+.historyEntry{padding:13px 0;border-top:1px solid #29434a;min-width:0}
+.historyEntry strong{color:#e5f7f4;font-size:13px;overflow-wrap:anywhere}
+.historyEntry p{color:#a4c0be;line-height:1.6;font-size:11px;margin:6px 0}
+.historyEntry button{
+ border:0;background:transparent;color:#9ae5d2;padding:4px 0;font-size:11px;font-weight:700;
+}
+.historyEmpty{border:1px dashed #385259;border-radius:13px;padding:23px;color:#a8bdc1;font-size:12px;line-height:1.7}
+.historyGroup .historyEmpty{border:0;padding:8px 0}
+#historyOlder{margin-top:17px}
+.historyReceiptsPanel{margin-top:21px}
+.historyReceipts{margin-top:13px}
+.historyReceipt{display:flex;align-items:center;justify-content:space-between;gap:15px;
+ padding:13px 0;border-top:1px solid #29434a}
+.historyReceipt strong{display:block;font-size:12px;color:#def4ed}
+.historyReceipt small{display:block;font-size:11px;color:#9cb6b6;margin:5px 0}
+.historyReceipt a{font-size:11px;font-weight:700;white-space:nowrap}
+.historyReceipts>p{font-size:12px;color:#a4bdbb}
+.historyDisclosure{color:#91aeb0;font-size:11px;line-height:1.7;margin-top:20px}
+@media(max-width:940px){.historySections{grid-template-columns:1fr 1fr}.historyGroup:last-child{grid-column:1/-1}}
+@media(max-width:720px){
+ .historyTop{padding:19px;flex-wrap:wrap}.historySections{grid-template-columns:1fr}
+ .historyGroup:last-child{grid-column:auto}.historyReceipt{align-items:flex-start}
+ .mainNav button{padding:10px 5px;font-size:11px}
+}

@@ -18,6 +18,7 @@
       <nav class="mainNav" aria-label="Main navigation">
         <button type="button" data-page="overview" class="active">Overview</button>
         <button type="button" data-page="workflow">Workflow</button>
+        <button type="button" data-page="history">My Activity</button>
         <button type="button" data-page="verify">Explorer</button>
       </nav>
       <div class="headRight">
@@ -101,6 +102,27 @@
           <p id="walletIdentity" class="small">No wallet connected.</p>
         </aside>
       </div>
+    </section>
+    <section id="history" class="page" hidden>
+      <div class="pageIntro">
+        <div class="eyebrow">WALLET-SCOPED VIEW</div>
+        <h1>My Activity.</h1>
+        <p class="lede">Your mandates, proposals and delegated ballots — read from finalized GenLayer contract state.</p>
+      </div>
+      <div class="historyTop">
+        <div><span class="eyebrow">CONNECTED ACCOUNT</span><strong id="historyWallet">Not connected</strong><p id="historyStatus">Connect your wallet to see its records.</p></div>
+        <button type="button" id="historyRefresh" class="outline">Refresh records</button>
+      </div>
+      <div id="historyList" class="historySections" aria-live="polite">
+        <div class="historyEmpty">Connect a wallet using the button above to load its on-chain records.</div>
+      </div>
+      <button type="button" id="historyOlder" class="outline" hidden>Load older on-chain records</button>
+      <section class="panel historyReceiptsPanel">
+        <div class="sectionHeading"><div><h2>Transaction receipts from this browser</h2>
+        <p>Hashes are saved locally after signing. Older transactions and those signed elsewhere cannot be reconstructed from browser storage.</p></div></div>
+        <div id="historyReceipts" class="historyReceipts"><p>Connect a wallet to inspect saved receipts.</p></div>
+      </section>
+      <p class="historyDisclosure">This page filters public on-chain data to the connected wallet. It is not a private blockchain ledger or a complete transaction index. Results are limited to recent contract records; use “Load older” when needed.</p>
     </section>
     <section id="verify" class="page" hidden>
       <div class="pageIntro">
