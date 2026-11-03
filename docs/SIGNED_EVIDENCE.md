@@ -55,11 +55,3 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 - **Delegate signed `cast_vote(2,4,FOR)`** → **Ballot #2**, finalized and verified in the screen recording.
 
 These video outcomes are documented as screen-recording evidence. Only the mandate #2 transaction hash has been separately provided in this section; proposal, assessment and ballot hashes have not been independently checked against the public Explorer here. The deployed contracts and finalized state are authoritative, not the video.
-
-## Next tests — NOT YET PERFORMED
-
-- Separate signed cap-enforcement and duplicate member/proposal across mandates (not performed).
-- Mandate version update, revocation and historical-ballot preservation after revoke (not performed).
-- GenLayer Projects steward review and acceptance (not yet claimed).
-
-Follow [Studio-first acceptance instructions](STUDIO_ACCEPTANCE_VI.md). Record **actual** IDs, hashes, consensus results and readbacks; never fabricate evidence.
