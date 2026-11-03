@@ -158,3 +158,85 @@ button.inlineLink{background:none;border:0;padding:0;font-size:inherit;font-weig
  .stats>div:last-child{grid-column:1/-1}
 }
 @media(prefers-reduced-motion:reduce){.page{animation:none}button{transition:none}}
+
+/* Classic VOTELINE palette: restored dark navy + mint, modern layout unchanged. */
+:root{
+ --bg:#081218;
+ --surface:#10212a;
+ --ink:#e9f3f3;
+ --muted:#a2bcc0;
+ --line:#29434a;
+ --primary:#9ae5d2;
+ --primary-hover:#b0f1df;
+ --soft:#162d30;
+ color-scheme:dark;
+}
+a{color:#8be1d0}
+.siteHeader{background:#0d1b23;border-color:#263b41}
+.brand{color:#e9f3f3}
+.logo{background:#82dec9;color:#0c2b29}
+.mainNav button{color:#a6c0c1}
+.mainNav button:hover{background:#20343a;color:#e9f3f3}
+.mainNav button.active{background:#203a3c;color:#9ae5d2}
+.network{background:#162d30;border-color:#34645f;color:#a5e6d6}
+.network:before{background:#65d6aa}
+.network.pending{background:#332a22;border-color:#725d43;color:#efc78a}
+.network.pending:before{background:#d4a05d}
+button.primary{background:#9ae5d2;border-color:#9ae5d2;color:#082b28}
+button.primary:hover:not(:disabled){background:#b0f1df;border-color:#b0f1df}
+button.outline{background:transparent;border-color:#385259;color:#daf3ef}
+button.outline:hover:not(:disabled){background:#1c363c}
+button.quiet{background:#193037;border-color:#35545a;color:#e3f4f3}
+button.quiet:hover{background:#244149}
+.eyebrow{color:#8bd9c8}
+.hero{background:#10212a;border-color:#29434a;box-shadow:0 14px 40px rgba(0,0,0,.12)}
+.heroAside{background:#10272d;border-color:#29434a}
+.heroAsideTitle{color:#91b6b4}
+.heroLine+.heroLine{border-color:#29434a}
+.stepCircle{border-color:#3e6763;background:#193a3c;color:#a9e8d5}
+.heroLine small{color:#9dbdbd}
+.stats>div,.panel,.action,.activity,.infoDetails,.advancedActions{background:#10212a;border-color:#29434a}
+.stats small,.stats span{color:#91aeb3}
+.stats strong{color:#d7fff4}
+.sectionHeading p,.action p,.detailsColumns p,.lede{color:#a2bcc0}
+.proofCard{background:#0b1b22;border-color:#2c464d}
+.proofCard.pass{background:#102a2b;border-color:#398c77}
+.proofCard.deny{background:#111f28;border-color:#37515a}
+.proofCard.unknown{background:#2a241e;border-color:#806345}
+.proofTop{color:#9ab6b8}
+.proofBadge{background:#1d4640;color:#a9f0d7}
+.proofCard.deny .proofBadge{background:#293d45;color:#d5e6e7}
+.proofCard.unknown .proofBadge{background:#4a3829;color:#f0ce9c}
+.proofCard h3{color:#ddfff2}
+.proofCard p{color:#a7bdc0}
+.proofFoot{color:#8fa9ae}
+.infoDetails>summary span{color:#91adb0}
+.flowTabs{background:#10212a;border-color:#29434a}
+.flowTabs button{color:#abc0c3}
+.flowTabs button:hover{background:#213941}
+.flowTabs button.active{background:#21413f;color:#a7f0db}
+.action .pill{background:#203c3b;color:#98e6d2}
+.fieldGrid label{color:#b7cccb}
+input,textarea,select{background:#0b1820;border-color:#38535b;color:#e0f1f0}
+input:focus,textarea:focus,select:focus{border-color:#84dbca;box-shadow:0 0 0 3px #17443e}
+input::placeholder,textarea::placeholder{color:#809ca1}
+.action .hint{color:#94afb2}
+.advancedActions summary{color:#c1ddda}
+.advancedActions>.action{background:#10212a}
+.demoNote{color:#abc4c5}
+.demoNote strong{color:#c9eeea}
+button.inlineLink{color:#9ae5d2}
+.activitySymbol{background:#1b3e3b;color:#9cebd4}
+.activity p{color:#aac0c3}
+.pipeline,.pipeline>div,.activity .small{border-color:#29434a}
+.pipeline>div{color:#94aeb1}
+.pipeline .done{color:#9ae5d2}
+.pipeline .current{color:#e5fff7}
+.activity .small{color:#94aeb1}
+.output{background:#0b1820;border-color:#29434a;color:#d1eae7}
+.smallFooterNote{color:#9db6b9}
+.footer{background:#0d1b23;border-color:#263b41;color:#97afb1}
+@media(max-width:720px){
+ .mainNav{border-top-color:#29434a}
+ .heroAside{border-top-color:#29434a}
+}
