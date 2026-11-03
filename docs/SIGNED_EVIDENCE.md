@@ -1,6 +1,6 @@
 # VOTELINE — Studio signed evidence
 
-**Network:** GenLayer Studionet chain 61999. **Date:** November 3, 2026. **Status:** Core signed Studio workflow verified; web-signed demo and YouTube video pending.
+**Network:** GenLayer Studionet chain 61999. **Date:** November 3, 2026. **Status:** Core signed Studio workflow verified; a browser-signed website walkthrough was recorded and the operator supplied the YouTube link https://youtu.be/VGOuZxx5mN4 (public playback not independently verified).
 
 The transactions, verdicts, and reads below were reported from GenLayer Studio by the project operator. The two deployed contract sources, read schemas, constructor binding and initial state were verified separately by [on-chain GitHub Actions](https://github.com/bearbaba/VOTELINE/actions/runs/41485210872). Any pending tests remain pending, not passed.
 
@@ -45,10 +45,21 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 **Post-wrong-signer and wrong-direction readback (Nov 3, 2026):** After finalized ERROR / ROLLBACK attempts `cast_vote(1,1,"AGAINST")` by Delegate and `cast_vote(1,1,"FOR")` by Member, operator read `DelegatedBallot.stats()` = `{"ballots":1,"registry":"0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23"}`. The original valid ballot remained the only ballot.
 
+## Signed website walkthrough — November 3, 2026
+
+- **Video:** https://youtu.be/VGOuZxx5mN4
+- **Website:** https://voteline.vercel.app/
+- **Member signed `create_mandate`** → **Mandate #2**. Operator-provided Explorer record: https://explorer-studio.genlayer.com/tx/0xf3f37565e506e6ea0bcf5ff2aa772b12002cf2c658da81e6db6440577a6ffac7 (FINALIZED / SUCCESS; returned ID 2).
+- **Member signed `create_proposal`** → **Proposal #4**, education workshop with 300 budget units, finalized and verified in the screen recording.
+- **`assess(2,4)`** → **ALIGNED**, finalized and verified in the screen recording; live authorization shown as allowed.
+- **Delegate signed `cast_vote(2,4,FOR)`** → **Ballot #2**, finalized and verified in the screen recording.
+
+These video outcomes are documented as screen-recording evidence. Only the mandate #2 transaction hash has been separately provided in this section; proposal, assessment and ballot hashes have not been independently checked against the public Explorer here. The deployed contracts and finalized state are authoritative, not the video.
+
 ## Next tests — NOT YET PERFORMED
 
 - Separate signed cap-enforcement and duplicate member/proposal across mandates (not performed).
 - Mandate version update, revocation and historical-ballot preservation after revoke (not performed).
-- One fresh signed web-app write, one-take YouTube video, then Projects submission (pending).
+- GenLayer Projects steward review and acceptance (not yet claimed).
 
 Follow [Studio-first acceptance instructions](STUDIO_ACCEPTANCE_VI.md). Record **actual** IDs, hashes, consensus results and readbacks; never fabricate evidence.
