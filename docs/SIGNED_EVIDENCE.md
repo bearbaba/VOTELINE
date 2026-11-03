@@ -25,6 +25,8 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 **Result:** Signed positive cross-contract ballot and one signed duplicate-rejection negative test are supported. Consensus Accepted on a rejected transaction does **not** imply the write succeeded. The error is the expected test outcome.
 
+**Authorization readback (Nov 3, 2026):** `MandateRegistry.authorization(1,2,0xD6b8A3A5eB329410D9504784812b8569afA8C2aF)` returned `allowed=false`, `decision=CONFLICT`, `direction=FOR`, `max_votes=1`, `version=1`. This is a successful **read-only deny** check. A signed `DelegatedBallot.cast_vote(1,2,"FOR")` denial is **not yet executed**, so do not count it as a rollback test.
+
 ## Next tests — NOT YET PERFORMED
 
 - Explicit commercial/budget violation → target CONFLICT, denied authorization.
