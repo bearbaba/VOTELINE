@@ -27,13 +27,15 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 | `create_proposal` → proposal **3** (education, budget=150, licensing/attribution/advertising details unconfirmed) | [0x059e…fe36](https://explorer-studio.genlayer.com/tx/0x059e2322aaa4489a19c15931ee4fc9a0d5372d3aade0f8d6069501621a92fe36) | FINALIZED / SUCCESS / Consensus Accepted | Return Value=3. `assess(1,3)` AI verdict **PENDING**, target REVIEW; no ballot authorization asserted. |
 
-| `assess(1,3)` → **REVIEW** | [0xb6c1…b572](https://explorer-studio.genlayer.com/tx/0xb6c1f9278ed75f5da18d0eb7cfd5917fe14294f614b0c0c6b9a103c47919b572) | FINALIZED / SUCCESS / Consensus Accepted | Real AI verdict REVIEW. `get_assessment(1,3)` and `authorization(1,3,Delegate)` **PENDING READBACK**. |
+| `assess(1,3)` → **REVIEW** | [0xb6c1…b572](https://explorer-studio.genlayer.com/tx/0xb6c1f9278ed75f5da18d0eb7cfd5917fe14294f614b0c0c6b9a103c47919b572) | FINALIZED / SUCCESS / Consensus Accepted | Real AI verdict REVIEW. `get_assessment(1,3)` verified REVIEW; `authorization(1,3,Delegate)` **PENDING**. |
 
 **Result:** Signed positive cross-contract ballot and one signed duplicate-rejection negative test are supported. Consensus Accepted on a rejected transaction does **not** imply the write succeeded. The error is the expected test outcome.
 
 **Authorization readback (Nov 3, 2026):** `MandateRegistry.authorization(1,2,0xD6b8A3A5eB329410D9504784812b8569afA8C2aF)` returned `allowed=false`, `decision=CONFLICT`, `direction=FOR`, `max_votes=1`, `version=1`. This is a successful **read-only deny** check. The signed `DelegatedBallot.cast_vote(1,2,"FOR")` attempt subsequently **rolled back** with `no current delegated authorization` (see transaction table). Post-rollback `stats()` readback verified `ballots=1`.
 
 **Post-CONFLICT rollback readback (Nov 3, 2026):** `DelegatedBallot.stats()` returned `{"ballots":1,"registry":"0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23"}`. Thus, after the signed `cast_vote(1,2,"FOR")` ERROR / ROLLBACK, the authorized ballot count remained **1** and cross-contract binding stayed intact.
+
+**REVIEW persistence readback (Nov 3, 2026):** `MandateRegistry.get_assessment(1,3)` returned `{"decision":"REVIEW","mandate_id":1,"mandate_version":1,"proposal_id":3}`. This confirms that the verdict returned by finalized `assess(1,3)` is stored on-chain. The `authorization(1,3,Delegate)` denial is pending the next read-only check.
 
 ## Next tests — NOT YET PERFORMED
 
