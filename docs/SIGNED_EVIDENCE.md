@@ -29,7 +29,7 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 | `assess(1,3)` → **REVIEW** | [0xb6c1…b572](https://explorer-studio.genlayer.com/tx/0xb6c1f9278ed75f5da18d0eb7cfd5917fe14294f614b0c0c6b9a103c47919b572) | FINALIZED / SUCCESS / Consensus Accepted | Real AI verdict REVIEW. `get_assessment(1,3)` verified REVIEW; `authorization(1,3,Delegate)` **PENDING**. |
 
-| Delegate `cast_vote(1,3,"FOR")` against **REVIEW** proposal | [0x5001…fcd2](https://explorer-studio.genlayer.com/tx/0x50010810ba05882344a7b0d4e44d01231ec2db28a308832112d121379ee6fcd2) | FINALIZED / **ERROR / ROLLBACK**, Consensus Accepted | `no current delegated authorization` as expected; `stats()` post-rollback **PENDING READBACK** |
+| Delegate `cast_vote(1,3,"FOR")` against **REVIEW** proposal | [0x5001…fcd2](https://explorer-studio.genlayer.com/tx/0x50010810ba05882344a7b0d4e44d01231ec2db28a308832112d121379ee6fcd2) | FINALIZED / **ERROR / ROLLBACK**, Consensus Accepted | `no current delegated authorization` as expected; `stats()` post-rollback confirmed **ballots=1** |
 
 **Result:** Signed positive cross-contract ballot and one signed duplicate-rejection negative test are supported. Consensus Accepted on a rejected transaction does **not** imply the write succeeded. The error is the expected test outcome.
 
@@ -40,6 +40,8 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 **REVIEW persistence readback (Nov 3, 2026):** `MandateRegistry.get_assessment(1,3)` returned `{"decision":"REVIEW","mandate_id":1,"mandate_version":1,"proposal_id":3}`. This confirms that the verdict returned by finalized `assess(1,3)` is stored on-chain. The `authorization(1,3,Delegate)` denial is pending the next read-only check.
 
 **REVIEW authorization readback (Nov 3, 2026):** `MandateRegistry.authorization(1,3,0xD6b8A3A5eB329410D9504784812b8569afA8C2aF)` returned `allowed=false`, `decision=REVIEW`, `direction=FOR`, `max_votes=1`, `version=1`, correctly denying a proposal lacking required policy evidence. A signed `DelegatedBallot.cast_vote(1,3,"FOR")` rejection is now confirmed with an ERROR / ROLLBACK; subsequent state readback is pending.
+
+**Post-REVIEW rollback readback (Nov 3, 2026):** After the finalized `cast_vote(1,3,"FOR")` ERROR / ROLLBACK, the operator read `DelegatedBallot.stats()` and received `{"ballots":1,"registry":"0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23"}`. The valid ballot remains persisted and REVIEW did not create a second ballot.
 
 ## Next tests — NOT YET PERFORMED
 
