@@ -13,7 +13,8 @@ let html='';
 for(let attempt=0;attempt<15;attempt++){
  html=await get('/');
  if(html.includes('VOTELINE — Delegation with proof') &&
-    html.includes('id="historyList"') && html.includes('data-page="history"'))break;
+    html.includes('id="historyList"') && html.includes('data-page="history"') &&
+    html.includes('id="nextStep"') && html.includes('id="nextStepAction"'))break;
  await new Promise(resolve=>setTimeout(resolve,4000));
 }
 check(html.includes('VOTELINE — Delegation with proof'),'VOTELINE page title missing');
