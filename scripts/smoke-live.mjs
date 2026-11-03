@@ -9,7 +9,13 @@ async function get(path){
  check(!/Vercel Authentication|Log in to Vercel/i.test(text),'Deployment is protected at '+path);
  return text;
 }
-const html=await get('/');
+let html='';
+for(let attempt=0;attempt<15;attempt++){
+ html=await get('/');
+ if(html.includes('VOTELINE — Delegation with proof') &&
+    html.includes('id="historyList"') && html.includes('data-page="history"'))break;
+ await new Promise(resolve=>setTimeout(resolve,4000));
+}
 check(html.includes('VOTELINE — Delegation with proof'),'VOTELINE page title missing');
 check(html.includes('id="proofGrid"') && html.includes('id="forms"') && html.includes('id="walletBtn"'),
   'Core VOTELINE proof, workflow or wallet UI missing');

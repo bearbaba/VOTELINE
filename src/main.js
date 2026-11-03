@@ -147,7 +147,7 @@ async function renderMyActivity(){
    displayHistoryGroup('My voting records',ballots.rows,'ballot');
   const errors=mandates.errors+proposals.errors+ballots.errors;
   const count=mandates.rows.length+proposals.rows.length+ballots.rows.length;
-  const hasOlder=[registry.mandates,registry.proposals,gate.ballots].some(n=>n>activityLimit);
+  const hasOlder=activityLimit<150&&[registry.mandates,registry.proposals,gate.ballots].some(n=>n>activityLimit);
   $('historyStatus').textContent=count+' matching on-chain records · '+(errors?errors+' reads unavailable; results may be incomplete':'Latest-final data')+
     (hasOlder?' · More older IDs available':'');
   $('historyOlder').hidden=!hasOlder;
