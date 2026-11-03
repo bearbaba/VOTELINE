@@ -19,6 +19,8 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 | Delegate `cast_vote(1,1,"FOR")` → ballot **1** | [0x6b0e…094f](https://explorer-studio.genlayer.com/tx/0x6b0e0bcb4761cd6ea9a7bec60ecf9bd9ac989322b0bbff4fd09851fd28eb094f) | FINALIZED / SUCCESS / Accepted | `get_ballot(1)` confirms actor=Delegate, owner=Member, FOR, mandate_id=1, proposal_id=1, version=1 |
 | Delegate repeats `cast_vote(1,1,"FOR")` → expected rejection | [0x6fa8…8d28](https://explorer-studio.genlayer.com/tx/0x6fa8a2ed43a9112e3fba7a64af40945a998ef002a3232d2095f1a113b33e8d28) | FINALIZED / **ERROR / ROLLBACK**; Consensus Accepted on rollback | Validator reason: `[rollback] member already voted on this proposal`; `stats()` after rejection: **ballots=1**, Registry address unchanged |
 
+| `create_proposal` → proposal **2** (commercial advertising, resale, paid access, budget=800) | [0xbafa…1313](https://explorer-studio.genlayer.com/tx/0xbafa8419afd4ce009831b9ebf69153a8dee5b76350fa01b3b4434750b8221313) | FINALIZED / SUCCESS / Consensus Accepted | Return value=2; `get_proposal(2)` and `assess(1,2)` are **PENDING** |
+
 **Result:** Signed positive cross-contract ballot and one signed duplicate-rejection negative test are supported. Consensus Accepted on a rejected transaction does **not** imply the write succeeded. The error is the expected test outcome.
 
 ## Next tests — NOT YET PERFORMED
