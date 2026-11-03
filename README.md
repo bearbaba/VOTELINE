@@ -4,7 +4,15 @@
 
 VOTELINE is an experimental GenLayer Studionet 61999 dApp connecting two Intelligent Contracts. A member signs a free-form voting mandate, appoints a delegate and sets a strict FOR/AGAINST direction and vote cap. The current 1–20 cap is **votes across distinct proposals per mandate**, not a limit of 20 platform users or wallets. A proposer signs immutable proposal details. GenLayer's comparative AI consensus evaluates the frozen proposal against the mandate and stores ALIGNED / CONFLICT / REVIEW. A distinct DelegatedBallot contract checks current Registry authorization, exact delegate identity and direction, max-vote cap and duplicate use, then writes one actual testnet ballot receipt.
 
-**STATUS (Nov 3, 2026): TWO CONTRACTS DEPLOYED, SIGNED STUDIO CORE PASSED, WEBSITE LIVE.** Actual signed transactions and finalized readbacks confirm ALIGNED → ballot #1, CONFLICT and REVIEW → blocked ballots; duplicate, wrong signer and wrong direction attempts correctly rolled back. On-chain deployed source/schema and cross-contract binding, plus public read-only website/API smoke, passed. **Fresh browser-signed write and final YouTube video remain pending.** See [signed evidence](docs/SIGNED_EVIDENCE.md).
+**STATUS (Nov 3, 2026): TWO CONTRACTS DEPLOYED, SIGNED STUDIO CORE PASSED, WEBSITE LIVE.** Actual signed transactions and finalized readbacks confirm ALIGNED → ballot #1, CONFLICT and REVIEW → blocked ballots; duplicate, wrong signer and wrong direction attempts correctly rolled back. On-chain deployed source/schema and cross-contract binding, plus public read-only website/API smoke, passed. **Browser-signed full workflow demo recorded and shared:** https://youtu.be/VGOuZxx5mN4 (video visibility not independently verified). The recorded workflow demonstrates Mandate #2, Proposal #4, GenLayer AI outcome ALIGNED and an authorized FOR vote recorded as Ballot #2. See [signed evidence](docs/SIGNED_EVIDENCE.md).
+
+## Live web walkthrough (November 3, 2026)
+
+- **YouTube:** https://youtu.be/VGOuZxx5mN4
+- **Production:** https://voteline.vercel.app/
+- **Demo:** Member signs Mandate #2, proposes Proposal #4 (free education, 300 budget units), GenLayer AI returns ALIGNED, authorized delegate signs FOR, Ballot #2 is shown VERIFIED.
+- **Signed mandate transaction:** https://explorer-studio.genlayer.com/tx/0xf3f37565e506e6ea0bcf5ff2aa772b12002cf2c658da81e6db6440577a6ffac7 (FINALIZED / SUCCESS based on the operator-supplied Explorer record).
+- **Evidence standard:** Video shows a real user workflow; the chain is the source of truth. The new proposal, assessment and ballot transaction hashes have not been separately listed here.
 
 ## Implementation
 
