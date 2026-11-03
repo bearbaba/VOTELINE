@@ -21,6 +21,8 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 | `create_proposal` → proposal **2** (commercial advertising, resale, paid access, budget=800) | [0xbafa…1313](https://explorer-studio.genlayer.com/tx/0xbafa8419afd4ce009831b9ebf69153a8dee5b76350fa01b3b4434750b8221313) | FINALIZED / SUCCESS / Consensus Accepted | Return value=2; `get_proposal(2)` and `assess(1,2)` are **PENDING** |
 
+| `assess(1,2)` → **CONFLICT** | [0xff924…d5a](https://explorer-studio.genlayer.com/tx/0xff924b624541cc9dff28b62f1edc050af201956ac1f23cbe8a1714dfed9a0d5a) | FINALIZED / SUCCESS / Consensus Accepted | Actual AI verdict CONFLICT; `get_assessment(1,2)` and `authorization(1,2,Delegate)` **PENDING** |
+
 **Result:** Signed positive cross-contract ballot and one signed duplicate-rejection negative test are supported. Consensus Accepted on a rejected transaction does **not** imply the write succeeded. The error is the expected test outcome.
 
 ## Next tests — NOT YET PERFORMED
