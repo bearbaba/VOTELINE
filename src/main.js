@@ -1,6 +1,7 @@
 import './style.css';
 import { project, evidence } from './project.js';
 import { classifyTx, parseValue, verifyStored } from '../lib/verification.js';
+import {txStage,elapsedLabel} from '../lib/tx-progress.js';
 import { runWorkerA, runWorkerB } from '../lib/workers.js';
 import { createClient } from 'genlayer-stable';
 import { studionet } from 'genlayer-stable/chains';
@@ -13,15 +14,22 @@ const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const CHAIN = 61999;
 let config = null, account = '', busy = false, checking = false;
 
-function notice(title, detail, phase=0, hash='') {
+function notice(title, detail, phase=0, hash='', state='idle') {
   $('txTitle').textContent = title;
   $('txMessage').textContent = detail;
   for(let n=1;n<=3;n++) $('phase'+n).className = n < phase ? 'done' : n===phase ? 'current' : '';
   $('txExplorer').hidden = !hash;
   if(hash) $('txExplorer').href = explorer + encodeURIComponent(hash);
+  const live=$('txProgress');
+  live.hidden=state!=='pending';
+  if(state!=='pending')live.textContent='';
+  document.querySelector('.activity').dataset.txState=state;
 }
 function setBusy(v) {
   busy=v;
+  // An in-flight signature is an immutable snapshot: do not allow presets,
+  // edits, wallet changes or a second submission to rewrite the displayed input.
+  document.querySelectorAll('#forms input,#forms select,#forms textarea,#forms button,[data-flow],#walletBtn,[data-focus]').forEach(b=>b.disabled=v);
   document.querySelectorAll('button[data-sign]').forEach(b=>b.disabled=v||!config?.configured);
 }
 function showPage(name) {
@@ -83,6 +91,7 @@ function renderForms(){
   }
   for(const button of document.querySelectorAll('[data-preset]')){
     button.addEventListener('click',()=>{
+      if(busy||checking||loadPending())return;
       const target=button.dataset.target;
       for(const [k,v] of Object.entries(project.samples[button.dataset.preset]||{})){
         const field=$('f_'+target+'_'+k);
@@ -95,6 +104,7 @@ function renderForms(){
     b.addEventListener('click',()=>generateWorkerDraft(b.dataset.worker));
 }
 function activateForm(key){
+  if(busy||checking)return;
   for(const f of project.forms.slice(0,4)){
     const card=$('form_'+f.key)?.closest('.action');
     if(card)card.hidden=f.key!==key;
@@ -257,10 +267,15 @@ function confirmWrite(f,values,actor,address) {
 }
 
 async function startSign(f) {
-  if(busy)return;
+  if(busy||checking)return;
   const prior=loadPending();
-  if(prior){notice('Pending transaction still stored','Recheck the same transaction before signing another.',1,prior.hash);$('recheck').hidden=false;return}
+  if(prior){
+    // Never send a second transaction while a previous hash is unresolved.
+    await follow(prior);
+    return;
+  }
   if(!config?.configured){notice('Studio deployment required','Configure both deployed contracts before any signing. No transaction sent.');return}
+  setBusy(true);
   let values;
   try{
     values=argValues(f);
@@ -284,56 +299,107 @@ async function startSign(f) {
       return;
     }
     const sender=createClient({chain:studionet,account,provider:window.ethereum});
-    setBusy(true);
-    notice('Confirm in wallet','Review '+f.method+' and the destination contract. No tx has been broadcast yet.',1);
+    notice('Confirm in wallet','Review '+f.method+' and the destination contract. No tx has been broadcast yet.',1,'','pending');
+    $('txProgress').textContent='Waiting for your wallet signature · no transaction broadcast yet.';
     const hash=await sender.writeContract({address:contract,functionName:f.method,args:values,value:0n});
     if(!/^0x[0-9a-fA-F]{64}$/.test(hash||''))throw Error('No valid transaction hash returned');
     record.hash=hash;
+    record.startedAt=Date.now();
     sessionStorage.setItem(pendingKey,JSON.stringify(record));
-    $('recheck').hidden=false;
-    setBusy(false);
     await follow(record);
-  }catch(e){setBusy(false);notice('No verified write',e?.message||String(e))}
+  }catch(e){
+    const pending=loadPending();
+    if(pending?.hash){
+      notice('Tracking interrupted','Transaction hash is saved; status has not been verified. Tracking can resume without resubmitting.',2,pending.hash,'paused');
+      $('recheck').hidden=false;
+    }else notice('No verified write',e?.message||String(e),0,'','error');
+  }finally{
+    if(!checking)setBusy(false);
+  }
 }
 function loadPending(){try{return JSON.parse(sessionStorage.getItem(pendingKey)||'null')}catch{return null}}
+function restorePendingForm(record){
+ const f=project.forms.find(x=>x.key===record.form);
+ if(!f||!Array.isArray(record.args))return;
+ for(let i=0;i<f.fields.length;i++){
+  const field=$('f_'+f.key+'_'+f.fields[i][0]);
+  if(field && record.args[i]!==undefined)field.value=String(record.args[i]);
+ }
+ activateForm(f.key);
+ showPage('workflow');
+}
 async function follow(record){
-  if(checking)return;
-  checking=true;setBusy(true);$('recheck').hidden=false;
-  notice('Waiting for GenLayer finality','Do not sign the same transaction twice. Checking execution and persisted state.',2,record.hash);
+  if(checking || !record?.hash)return;
+  checking=true;setBusy(true);$('recheck').hidden=true;
+  const started=Number.isFinite(record.startedAt)?record.startedAt:Date.now();
+  let stage='Awaiting GenLayer node receipt';
+  const renderProgress=()=>{
+    $('txProgress').textContent=elapsedLabel(Date.now()-started)+' elapsed · '+stage+' · Automatic checking active';
+  };
+  notice('Tracking on-chain transaction','Your transaction is being checked automatically. No manual refresh or duplicate signing needed.',2,record.hash,'pending');
+  renderProgress();
+  const ticker=setInterval(renderProgress,1000);
   try{
-    for(let attempt=0;attempt<65;attempt++){
+    for(let attempt=0;attempt<180;attempt++){
       let response;
       try{
-        const r=await fetch('/api/tx?hash='+encodeURIComponent(record.hash),{cache:'no-store'});
+        const r=await fetch('/api/tx?hash='+encodeURIComponent(record.hash),{cache:'no-store',signal:AbortSignal.timeout(15000)});
         response=await r.json();
         if(!r.ok||!response.ok)throw Error(response.error||'Transaction query failed');
-      }catch(e){await new Promise(res=>setTimeout(res,3500));continue}
+        stage=txStage(response.status);
+        renderProgress();
+      }catch(e){
+        stage='Network query delayed; retrying automatically';
+        renderProgress();
+        await new Promise(res=>setTimeout(res,4000));
+        continue;
+      }
       const phase=classifyTx(response);
       if(phase==='error'){
         sessionStorage.removeItem(pendingKey);
-        notice('FINALIZED · execution failed','Transaction was not executed successfully. Preserve the hash to debug.',2,record.hash);
+        notice('Transaction did not complete','Finalized execution failed or the transaction was canceled. The original hash remains available for investigation.',2,record.hash,'error');
+        $('recheck').hidden=true;
         return;
       }
       if(phase==='success'){
-        for(let k=0;k<7;k++){
+        stage='Execution finalized; checking stored contract state';
+        notice('Finalized · verifying record','GenLayer finalized the transaction. Confirming the exact state written on-chain.',3,record.hash,'pending');
+        renderProgress();
+        for(let k=0;k<8;k++){
           try{
             const proof=await verifyRecord(record);
             if(proof.ok){
               sessionStorage.removeItem(pendingKey);
-              notice('FINALIZED / VERIFIED',proof.message,3,record.hash);
-              await Promise.all([fillDefaultReads(),loadEvidence()]);
+              notice('FINALIZED / VERIFIED',proof.message,3,record.hash,'success');
+              $('recheck').hidden=true;
+              await Promise.allSettled([fillDefaultReads(),loadEvidence()]);
               return;
             }
-          }catch(e){}
-          await new Promise(res=>setTimeout(res,2500));
+          }catch(e){
+            stage='Readback pending; retrying finalized contract state';
+            renderProgress();
+          }
+          await new Promise(res=>setTimeout(res,3000));
         }
-        notice('FINALIZED · state unverified','Execution succeeded but matching persisted state has NOT yet been established. Recheck the same hash; do not submit again.',2,record.hash);
+        notice('Finalized · record not verified','Execution finalized, but the stored state could not be confirmed. The hash is saved; do not submit again.',3,record.hash,'paused');
+        $('recheck').textContent='Resume verification';
+        $('recheck').hidden=false;
         return;
       }
-      await new Promise(res=>setTimeout(res,3600));
+      await new Promise(res=>setTimeout(res,4000));
     }
-    notice('Not yet confirmed','Transaction hash is stored; recheck it later. Never sign duplicate while pending.',2,record.hash);
-  }finally{checking=false;setBusy(false)}
+    notice('Tracking paused · still unresolved','No finalized result was verified. The transaction hash is saved; resume tracking the same hash, never sign a duplicate.',2,record.hash,'paused');
+    $('recheck').textContent='Resume automatic tracking';
+    $('recheck').hidden=false;
+  }catch(e){
+    notice('Connection interrupted','The transaction hash is preserved. Resume tracking without sending a second transaction.',2,record.hash,'paused');
+    $('recheck').textContent='Resume automatic tracking';
+    $('recheck').hidden=false;
+  }finally{
+    clearInterval(ticker);
+    checking=false;
+    setBusy(false);
+  }
 }
 async function verifyRecord(record){
   const a=record.args,actor=record.actor,method=record.method;
@@ -434,6 +500,23 @@ async function generateWorkerDraft(role) {
     notice('Worker artifact generated','This is actual deterministic browser code output, not an AI verdict. Review and sign with the assigned worker wallet.');
   }catch(e){notice('Could not generate artifact',e.message)}
 }
-$('recheck').onclick=async()=>{const record=loadPending();if(record)await follow(record);else notice('No pending hash','Previous status remains visible; no automatic retry was sent.')};
+$('recheck').onclick=async()=>{const record=loadPending();if(record)await follow(record);else notice('No pending transaction','No unresolved transaction hash is stored.')};
 renderMeta();renderForms();renderReads();showPage(['overview','workflow','verify'].includes(location.hash.slice(1))?location.hash.slice(1):'overview');
-refreshConfig().then(()=>{loadEvidence();const r=loadPending();if(r?.hash){$('recheck').hidden=false;follow(r)}});
+const saved=loadPending();
+if(saved?.hash){
+ restorePendingForm(saved);
+ notice('Restoring automatic tracking','Your previous transaction is preserved; checking its actual on-chain status.',2,saved.hash,'pending');
+ $('txProgress').textContent='Restoring the last transaction without re-signing…';
+ setBusy(true);
+}
+refreshConfig().then(()=>{
+ loadEvidence();
+ const r=loadPending();
+ if(r?.hash)follow(r);
+});
+window.addEventListener('visibilitychange',()=>{
+ if(!document.hidden && !checking){
+  const r=loadPending();
+  if(r?.hash)follow(r);
+ }
+});

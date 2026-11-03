@@ -240,3 +240,26 @@ button.inlineLink{color:#9ae5d2}
  .mainNav{border-top-color:#29434a}
  .heroAside{border-top-color:#29434a}
 }
+
+/* On-chain transaction feedback: keep the original navy/mint theme. */
+.activity[data-tx-state="pending"]{border-color:#41796f;box-shadow:0 0 0 1px rgba(121,221,192,.12)}
+.activitySpinner{display:none}
+.activity[data-tx-state="pending"] .activityArrow{display:none}
+.activity[data-tx-state="pending"] .activitySpinner{
+ display:block;width:22px;height:22px;border:3px solid #38635c;
+ border-top-color:#9ae5d2;border-radius:50%;animation:txRotate .85s linear infinite;
+}
+@keyframes txRotate{to{transform:rotate(360deg)}}
+.activity[data-tx-state="success"] .activitySymbol{background:#214940;color:#b4f6d9}
+.activity[data-tx-state="error"] .activitySymbol{background:#4c292b;color:#ffb5b2}
+.txProgress{
+ border:1px solid #345d56;border-radius:10px;padding:11px 12px;
+ background:#102b2b;color:#b9e9de;font-size:11px;line-height:1.65;
+ margin:12px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+.activity[data-tx-state="pending"] .txProgress{display:block}
+.action :disabled:not(button){opacity:.8}
+.activity #recheck[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){
+ .activity[data-tx-state="pending"] .activitySpinner{animation-duration:2s}
+}

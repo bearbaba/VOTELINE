@@ -87,9 +87,10 @@
         </div>
         <aside class="activity" aria-label="Transaction status" role="status">
           <div class="eyebrow">TRANSACTION STATUS</div>
-          <div class="activitySymbol" aria-hidden="true">↗</div>
+          <div class="activitySymbol" aria-hidden="true"><span class="activityArrow">↗</span><span class="activitySpinner"></span></div>
           <h2 id="txTitle">Ready to sign</h2>
           <p id="txMessage">Your next signed action will appear here.</p>
+          <div id="txProgress" class="txProgress" aria-live="polite" hidden>Automatic tracking starts after wallet confirmation.</div>
           <div class="pipeline" aria-label="Transaction lifecycle">
             <div id="phase1"><span>01</span> Wallet signature</div>
             <div id="phase2"><span>02</span> GenLayer finality</div>

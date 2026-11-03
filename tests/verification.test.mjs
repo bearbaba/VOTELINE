@@ -11,6 +11,10 @@ test('finality requires execution success, not only FINALIZED',()=>{
  assert.equal(classifyTx({status:'FINALIZED',execution:'ERROR'}),'error');
  assert.equal(classifyTx({status:'FINALIZED'}),'pending');
  assert.equal(classifyTx({status:'ACCEPTED',execution:'SUCCESS'}),'pending');
+ assert.equal(classifyTx({status:'ACCEPTED',execution:'ERROR'}),'pending');
+ assert.equal(classifyTx({status:'UNDETERMINED',execution:'ERROR'}),'pending');
+ assert.equal(classifyTx({status:'FINALIZED',execution:'UNKNOWN'}),'pending');
+ assert.equal(classifyTx({status:'CANCELED',execution:'UNKNOWN'}),'error');
 });
 test('VOTELINE requires same owner + exact mandate fields',()=>{
  const r={method:'create_mandate',actor:'0xABC',args:['0xdef','FOR','Grant only education',2]};
