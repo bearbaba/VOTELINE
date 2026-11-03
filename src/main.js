@@ -74,6 +74,10 @@ function renderForms(){
     for(const card of [...$('forms').querySelectorAll('.action')].slice(4))box.append(card);
     $('forms').append(box);
   }
+  for(const btn of document.querySelectorAll('[data-flow]')) {
+    btn.addEventListener('click',()=>activateForm(btn.dataset.flow));
+  }
+  activateForm('create_mandate');
   for(const f of project.forms){
     $('form_'+f.key).addEventListener('submit',ev=>{ev.preventDefault();startSign(f)});
   }
@@ -90,9 +94,20 @@ function renderForms(){
   for(const b of document.querySelectorAll('[data-worker]'))
     b.addEventListener('click',()=>generateWorkerDraft(b.dataset.worker));
 }
+function activateForm(key){
+  for(const f of project.forms.slice(0,4)){
+    const card=$('form_'+f.key)?.closest('.action');
+    if(card)card.hidden=f.key!==key;
+  }
+  for(const btn of document.querySelectorAll('[data-flow]')){
+    btn.classList.toggle('active',btn.dataset.flow===key);
+    btn.setAttribute('aria-current',btn.dataset.flow===key?'step':'false');
+  }
+}
 for(const btn of document.querySelectorAll('[data-focus]')){
  btn.addEventListener('click',()=>{
   showPage('workflow');
+  activateForm(btn.dataset.focus);
   const form=$('form_'+btn.dataset.focus);
   form?.closest('.action')?.scrollIntoView({behavior:'smooth',block:'start'});
   form?.querySelector('input,textarea,select')?.focus({preventScroll:true});
@@ -100,7 +115,8 @@ for(const btn of document.querySelectorAll('[data-focus]')){
 }
 function updateAccount(v=''){
   account=v;
-  $('walletBtn').textContent=v?'Clear session':'Connect wallet';
+  $('walletBtn').textContent=v?v.slice(0,6)+'…'+v.slice(-4)+' · Clear':'Connect wallet';
+  $('walletBtn').title=v?'Clear local selection only. Revoke site permission in wallet settings.':'Connect an EIP-1193 wallet';
   $('walletIdentity').textContent=v?'Connected wallet: '+v:'No wallet connected.';
 }
 async function connect(){
