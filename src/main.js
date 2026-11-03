@@ -1,5 +1,5 @@
 import './style.css';
-import { project } from './project.js';
+import { project, evidence } from './project.js';
 import { classifyTx, parseValue, verifyStored } from '../lib/verification.js';
 import { runWorkerA, runWorkerB } from '../lib/workers.js';
 import { createClient } from 'genlayer-stable';
@@ -67,6 +67,13 @@ function renderForms(){
       '<button class="outline" type="button" data-worker="B_FAULT">Generate faulty Worker B</button>':'')+
     '</div></form><p class="hint">Signing consumes test GEN. An example only fills a draft; it never signs or submits.</p></section>'
   ).join('');
+  if(project.id==='voteline'){
+    const box=document.createElement('details'); box.className='advancedActions';
+    const header=document.createElement('summary'); header.textContent='Advanced controls · Update or revoke mandate';
+    box.append(header);
+    for(const card of [...$('forms').querySelectorAll('.action')].slice(4))box.append(card);
+    $('forms').append(box);
+  }
   for(const f of project.forms){
     $('form_'+f.key).addEventListener('submit',ev=>{ev.preventDefault();startSign(f)});
   }
@@ -83,13 +90,21 @@ function renderForms(){
   for(const b of document.querySelectorAll('[data-worker]'))
     b.addEventListener('click',()=>generateWorkerDraft(b.dataset.worker));
 }
+for(const btn of document.querySelectorAll('[data-focus]')){
+ btn.addEventListener('click',()=>{
+  showPage('workflow');
+  const form=$('form_'+btn.dataset.focus);
+  form?.closest('.action')?.scrollIntoView({behavior:'smooth',block:'start'});
+  form?.querySelector('input,textarea,select')?.focus({preventScroll:true});
+ });
+}
 function updateAccount(v=''){
   account=v;
-  $('walletBtn').textContent=v?v.slice(0,6)+'…'+v.slice(-4)+' · Disconnect':'Connect wallet';
+  $('walletBtn').textContent=v?'Clear session':'Connect wallet';
   $('walletIdentity').textContent=v?'Connected wallet: '+v:'No wallet connected.';
 }
 async function connect(){
-  if(account){updateAccount();return}
+  if(account){updateAccount();notice('Page session cleared','This site has cleared its selected wallet. Revoke website access separately in your wallet settings if desired.');return}
   if(!window.ethereum) throw Error('An EIP-1193 wallet (such as MetaMask) is required to sign.');
   const a=await window.ethereum.request({method:'eth_requestAccounts'});
   if(!ADDRESS.test(a?.[0]||''))throw Error('No valid wallet account.');
@@ -129,6 +144,37 @@ async function api(scope,method,inputs=[]) {
   if(!response.ok||!json.ok)throw Error(json.error||'Chain read unavailable');
   return parseValue(json.value);
 }
+
+async function loadEvidence(){
+ const target=$('proofGrid');
+ if(!target)return;
+ if(!config?.configured){target.textContent='Live contracts unavailable; proof cannot currently be verified.';return;}
+ target.textContent='Reading finalized AI decisions and ballot authorizations…';
+ try{
+  const rows=await Promise.all(evidence.proofs.map(async p=>{
+   const [assessment,auth,ballot]=await Promise.all([
+    api('registry','get_assessment',[evidence.mandateId,p.proposalId]),
+    api('registry','authorization',[evidence.mandateId,p.proposalId,evidence.delegate]),
+    api('gate','ballot_for',[evidence.mandateId,p.proposalId])
+   ]);
+   const valid=assessment?.decision===p.verdict && assessment?.mandate_version===1 &&
+     (p.proposalId===1 ? auth?.allowed===true && ballot?.id===1 && ballot?.choice==='FOR' &&
+       String(ballot?.actor||'').toLowerCase()===evidence.delegate.toLowerCase()
+      : auth?.allowed===false && !ballot);
+   return {p,valid,actual:assessment?.decision||'UNKNOWN'};
+  }));
+  target.innerHTML=rows.map(({p,valid,actual})=>{
+   const tone=valid?(p.proposalId===1?'pass':'deny'):'unknown';
+   const status=valid?(p.proposalId===1?'VOTE VERIFIED':'DENIED · NO BALLOT'):'NOT VERIFIED';
+   const detail=valid?(p.proposalId===1?'Delegate signed FOR ballot #1.':'Authorization is false; no ballot recorded.'):'Live state did not match the expected evidence.';
+   return '<article class="proofCard '+tone+'"><div class="proofTop"><span>PROPOSAL #'+p.proposalId+'</span><span class="proofBadge">'+esc(status)+'</span></div>'+
+    '<h3>'+esc(actual)+'</h3><p>'+esc(detail)+'</p><div class="proofLinks">'+
+    '<a target="_blank" rel="noopener" href="'+explorer+p.assessmentTx+'">AI transaction ↗</a>'+
+    '<a target="_blank" rel="noopener" href="'+explorer+p.ballotTx+'">'+(p.proposalId===1?'Ballot receipt ↗':'Rejected vote ↗')+'</a></div></article>';
+  }).join('');
+ }catch(e){target.textContent='Finalized state unavailable: '+String(e?.message||e).slice(0,190)+'. See the signed evidence ledger. No result is being assumed.';}
+}
+
 async function sha256(s){
   const bytes=new TextEncoder().encode(s);
   const d=await crypto.subtle.digest('SHA-256',bytes);
@@ -259,7 +305,7 @@ async function follow(record){
             if(proof.ok){
               sessionStorage.removeItem(pendingKey);
               notice('FINALIZED / VERIFIED',proof.message,3,record.hash);
-              await fillDefaultReads();
+              await Promise.all([fillDefaultReads(),loadEvidence()]);
               return;
             }
           }catch(e){}
@@ -309,8 +355,15 @@ async function verifyRecord(record){
   }
   return {ok:false};
 }
+function updateReadFields(){
+ const shape=project.reads[Number($('readMethod').value)]?.[3]||'none';
+ $('readPrimaryField').hidden=shape==='none'||shape==='member';
+ $('readOtherField').hidden=!['two','actor','member'].includes(shape);
+ $('readActorField').hidden=!['actor','member'].includes(shape);
+}
 function renderReads(){
-  $('readMethod').innerHTML=project.reads.map((r,i)=>'<option value="'+i+'">'+esc(r[0])+' · '+esc(r[2])+'</option>').join('');
+ $('readMethod').innerHTML=project.reads.map((r,i)=>'<option value="'+i+'">'+esc(r[0])+' · '+esc(r[2])+'</option>').join('');
+ $('readMethod').addEventListener('change',updateReadFields);updateReadFields();
 }
 async function handleRead(){
   const r=project.reads[Number($('readMethod').value)];
@@ -336,6 +389,7 @@ async function refreshConfig(){
       if(!Number.isSafeInteger(totals?.mandates)||!Number.isSafeInteger(totals?.proposals)||
          ballot?.registry?.toLowerCase()!==config.registry.toLowerCase())
         throw Error('Studio preflight failed: missing finalized state or ballot registry link mismatch.');
+      $('liveBallots').textContent=String(ballot.ballots);
     }
     $('network').textContent=config.configured?'Studionet 61999 · live contracts verified':'Studio deployment pending';
     $('network').classList.toggle('pending',!config.configured);
@@ -366,4 +420,4 @@ async function generateWorkerDraft(role) {
 }
 $('recheck').onclick=async()=>{const record=loadPending();if(record)await follow(record);else notice('No pending hash','Previous status remains visible; no automatic retry was sent.')};
 renderMeta();renderForms();renderReads();showPage(['overview','workflow','verify'].includes(location.hash.slice(1))?location.hash.slice(1):'overview');
-refreshConfig().then(()=>{const r=loadPending();if(r?.hash){$('recheck').hidden=false;follow(r)}});
+refreshConfig().then(()=>{loadEvidence();const r=loadPending();if(r?.hash){$('recheck').hidden=false;follow(r)}});

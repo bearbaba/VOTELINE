@@ -1,6 +1,6 @@
 # VOTELINE — GenLayer Project Reviewer Guide
 
-**Status: both Intelligent Contracts deployed on GenLayer Studionet 61999; deployed source/schema and cross-contract Registry link verified. Signed application test cases and video are pending — no AI verdict or ballot receipt is claimed yet.**
+**Status (Nov 3, 2026): both contracts deployed/verified on Studionet 61999; signed Studio tests confirm ALIGNED → ballot #1, CONFLICT → denied, REVIEW → denied, with further signed duplicate, wrong-wallet and wrong-direction rejections. Website read-only smoke passed; browser-origin signed write and final video are not yet confirmed.**
 
 Project: https://github.com/bearbaba/VOTELINE
 Network: Studionet 61999. Studio 61997 is not compatible.
@@ -10,7 +10,8 @@ Network: Studionet 61999. Studio 61997 is not compatible.
 - Ballot: https://explorer-studio.genlayer.com/address/0x600dB69aA8cb83Fc469597b20864ed95fdeF2324
 - Source + cross-contract binding proof: https://github.com/bearbaba/VOTELINE/actions/runs/41485210872
 - Live site/API smoke: https://github.com/bearbaba/VOTELINE/actions/runs/41486261577
-- Full Studio-first acceptance fixtures: [STUDIO_ACCEPTANCE_VI.md](STUDIO_ACCEPTANCE_VI.md)
+- Signed Studio transactions: [SIGNED_EVIDENCE.md](SIGNED_EVIDENCE.md)
+- Test fixtures: [STUDIO_ACCEPTANCE_VI.md](STUDIO_ACCEPTANCE_VI.md)
 
 ## Why this is a Project, not only an AI prompt
 
@@ -36,13 +37,14 @@ A member signs an intent-scoped delegation mandate with an allowed direction and
 
 Browser: src/main.js; pure persisted-state verifier: lib/verification.js; serverless allowlist: api/state.js; tx finality: api/tx.js. No method calls outside the allowlist. All reads use LATEST_FINAL. A FINALIZED execution without a matching record is NEVER shown as verified success.
 
-## Required signed evidence (NOT YET PERFORMED)
+## Signed evidence and remaining limitations
 
-1. Member creates mandate with education grant policy, delegate and max_votes=2. Save finalized mandate ID and writer address.
-2. Proposer creates explicitly permitted proposal. AI assessment must independently persist ALIGNED. Delegate casts FOR ballot, Gate stores exact ID and actor.
-3. Disallowed commercial proposal must produce CONFLICT and Gate denial. Missing source/budget ambiguity should become REVIEW and deny Gate action.
-4. Verify wrong wallet, wrong direction, duplicate pair, total cap, policy update and revoke. Existing votes remain archival records, not removed.
-5. Fetch exact deployed contract bytes and compare to the committed sources, link both addresses, hashes and reviewer video.
+1. **PASS:** Member created mandate #1 (FOR, max_votes=1), proposal #1; AI assessed ALIGNED; Delegate signed FOR ballot #1.
+2. **PASS:** Proposal #2 assessed CONFLICT and #3 assessed REVIEW; authorization false; signed vote attempts rolled back with no new ballots.
+3. **PASS:** Duplicate vote, wrong signer and wrong direction rejected; finalized stats readback remained ballots=1.
+4. **PASS:** Deployed source/schema/link verification and production website read-only API smoke.
+5. **PENDING (not claimed):** separate signed max_votes cap enforcement, version invalidation and revoke; fresh browser-origin signed write and the final demo video.
+6. Exact transaction hashes, receipts, and readbacks: [SIGNED_EVIDENCE.md](SIGNED_EVIDENCE.md).
 
 ## Disclosures
 

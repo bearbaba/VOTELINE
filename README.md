@@ -4,7 +4,7 @@
 
 VOTELINE is an experimental GenLayer Studionet 61999 dApp connecting two Intelligent Contracts. A member signs a free-form voting mandate, appoints a delegate and sets a strict FOR/AGAINST direction and vote cap. A proposer signs immutable proposal details. GenLayer's comparative AI consensus evaluates the frozen proposal against the mandate and stores ALIGNED / CONFLICT / REVIEW. A distinct DelegatedBallot contract checks current Registry authorization, exact delegate identity and direction, max-vote cap and duplicate use, then writes one actual testnet ballot receipt.
 
-**STATUS: TWO CONTRACTS DEPLOYED, WEBSITE LIVE; SIGNED DEMONSTRATION PENDING.** Both contracts have verified deployed source/schema and exact Registry binding on Studionet 61999. Read-only website/API smoke is PASS. No successful signed AI assessment, ballot or end-to-end website write is claimed yet. See [Studio acceptance](docs/STUDIO_ACCEPTANCE_VI.md).
+**STATUS (Nov 3, 2026): TWO CONTRACTS DEPLOYED, SIGNED STUDIO CORE PASSED, WEBSITE LIVE.** Actual signed transactions and finalized readbacks confirm ALIGNED → ballot #1, CONFLICT and REVIEW → blocked ballots; duplicate, wrong signer and wrong direction attempts correctly rolled back. On-chain deployed source/schema and cross-contract binding, plus public read-only website/API smoke, passed. **Fresh browser-signed write and final YouTube video remain pending.** See [signed evidence](docs/SIGNED_EVIDENCE.md).
 
 ## Implementation
 
@@ -31,7 +31,7 @@ Website: https://voteline.vercel.app/. Vercel is configured with the verified Re
 2. Deploy DelegatedBallot with its constructor registry_address referencing the real Registry.
 3. Set both addresses, verify latest-final readback and exact source.
 4. Sign positive ALIGNED -> delegate ballot; negative explicit CONFLICT and ambiguous REVIEW -> no ballot.
-5. Verify wrong signer, wrong direction, duplicate, vote cap, expired-by-revocation future authorizations and immutable historical votes, with real signed transactions and rollbacks.
+5. Signed wrong-signer, wrong-direction and duplicate tests PASS; vote cap, version update and revoke have implementation but separate signed coverage remains pending.
 6. Record demo from the live website, then independently read all IDs and prepare reviewer evidence.
 
 **Scope:** This is NOT integrated with any real DAO or election. Proposal claims are self-reported. No off-chain delegate consent, legal authority, token transfer, financial voting rights, funds or certified voter identity. GenLayer fees/validator behavior must be measured in Studio. See docs/STUDIO_RUNBOOK.md.

@@ -30,3 +30,13 @@ export const project = {
   ["Ballot","gate","get_ballot","id"],["Ballot for pair","gate","ballot_for","two"],["Member ballot","gate","member_ballot_for","member"],["Totals","registry","totals","none"],["Ballot stats","gate","stats","none"]
  ]
 };
+/** Transaction hashes are references only. UI status must be validated from finalized chain state. */
+export const evidence = {
+ mandateId: 1,
+ delegate: "0xD6b8A3A5eB329410D9504784812b8569afA8C2aF",
+ proofs: [
+  {proposalId:1,verdict:"ALIGNED",assessmentTx:"0xc006faa96d06a8c3c573dc52765cffb38196db60deca45bd966f3eb5b7a1d4fe",ballotTx:"0x6b0e0bcb4761cd6ea9a7bec60ecf9bd9ac989322b0bbff4fd09851fd28eb094f"},
+  {proposalId:2,verdict:"CONFLICT",assessmentTx:"0xff924b624541cc9dff28b62f1edc050af201956ac1f23cbe8a1714dfed9a0d5a",ballotTx:"0xea0eb6630d072dc3516760168f5cd32d490d74accdc0384a66c0b9e833a8bdd7"},
+  {proposalId:3,verdict:"REVIEW",assessmentTx:"0xb6c1f9278ed75f5da18d0eb7cfd5917fe14294f614b0c0c6b9a103c47919b572",ballotTx:"0x50010810ba05882344a7b0d4e44d01231ec2db28a308832112d121379ee6fcd2"}
+ ]
+};
