@@ -77,6 +77,16 @@
       </div>
       <div class="workflowGrid">
         <div class="workflowMain">
+          <section id="nextStep" class="nextStep" hidden aria-live="polite">
+            <div class="nextStepMark" aria-hidden="true">✓</div>
+            <div class="nextStepContent">
+              <span class="eyebrow">VERIFIED · CONTINUE</span>
+              <h2 id="nextStepTitle">Next action</h2>
+              <p id="nextStepDescription"></p>
+              <p id="nextStepContext" class="nextStepContext"></p>
+              <button id="nextStepAction" type="button" class="primary">Continue →</button>
+            </div>
+          </section>
           <nav class="flowTabs" id="flowTabs" aria-label="Transaction actions">
             <button type="button" data-flow="create_mandate" class="active"><span>01</span> Mandate</button>
             <button type="button" data-flow="create_proposal"><span>02</span> Proposal</button>

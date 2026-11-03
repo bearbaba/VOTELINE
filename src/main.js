@@ -2,6 +2,7 @@ import './style.css';
 import { project, evidence } from './project.js';
 import { classifyTx, parseValue, verifyStored } from '../lib/verification.js';
 import {txStage,elapsedLabel} from '../lib/tx-progress.js';
+import {nextStepFor} from '../lib/next-step.js';
 import {recentRecordIds,belongsToWallet,validReceiptForWallet} from '../lib/activity.js';
 import { runWorkerA, runWorkerB } from '../lib/workers.js';
 import { createClient } from 'genlayer-stable';
@@ -12,10 +13,12 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const explorer = 'https://explorer-studio.genlayer.com/tx/';
 const pendingKey = project.id + '-pending-tx-v1';
 const receiptKey = project.id + '-local-receipts-v1';
+const nextStepKey = project.id + '-verified-next-step-v1';
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const CHAIN = 61999;
 let config = null, account = '', busy = false, checking = false;
 let activityRequest=0, activityLimit=30;
+let nextContext=null, nextAction=null, contextLookup=0;
 
 function notice(title, detail, phase=0, hash='', state='idle') {
   $('txTitle').textContent = title;
@@ -34,6 +37,7 @@ function setBusy(v) {
   // edits, wallet changes or a second submission to rewrite the displayed input.
   document.querySelectorAll('#forms input,#forms select,#forms textarea,#forms button,[data-flow],#walletBtn,[data-focus]').forEach(b=>b.disabled=v);
   document.querySelectorAll('button[data-sign]').forEach(b=>b.disabled=v||!config?.configured);
+  if($('nextStepAction'))$('nextStepAction').disabled=v;
 }
 function showPage(name) {
   for(const p of ['overview','workflow','history','verify']) $(p).hidden = p!==name;
@@ -175,6 +179,172 @@ $('historyList').addEventListener('click',event=>{
  handleRead().catch(e=>{$('readResult').textContent='READ FAILED: '+e.message});
 });
 
+
+function clearNextStep(){
+ nextContext=null;nextAction=null;
+ $('nextStep').hidden=true;
+}
+function readNextContext(){
+ try{
+  const ctx=JSON.parse(localStorage.getItem(nextStepKey)||'null');
+  if(!ctx||!ADDRESS.test(ctx.actor)||!/^0x[0-9a-fA-F]{64}$/.test(ctx.hash||'') ||
+     !['create_mandate','create_proposal','assess','cast_vote'].includes(ctx.method))return null;
+  return ctx;
+ }catch{return null}
+}
+function writeNextContext(ctx){
+ try{localStorage.setItem(nextStepKey,JSON.stringify(ctx));}catch{}
+}
+function showNextStep(ctx){
+ if(!ctx||!ADDRESS.test(ctx.actor)||ctx.actor.toLowerCase()!==account.toLowerCase()){
+  clearNextStep();return;
+ }
+ const step=nextStepFor(ctx.method,ctx.decision,ctx.authorization);
+ nextContext=ctx;nextAction=step;
+ $('nextStep').hidden=false;
+ $('nextStepTitle').textContent=step.title;
+ $('nextStepDescription').textContent=step.description;
+ const ids=[];
+ if(Number.isSafeInteger(ctx.mandateId)&&ctx.mandateId>0)ids.push('Mandate #'+ctx.mandateId);
+ if(Number.isSafeInteger(ctx.proposalId)&&ctx.proposalId>0)ids.push('Proposal #'+ctx.proposalId);
+ if(Number.isSafeInteger(ctx.ballotId)&&ctx.ballotId>0)ids.push('Ballot #'+ctx.ballotId);
+ if(ADDRESS.test(ctx.delegate||'')&&step.target==='cast_vote')
+  ids.push('Delegate: '+ctx.delegate.slice(0,8)+'…'+ctx.delegate.slice(-6));
+ $('nextStepContext').textContent=ids.join(' · ')||'Transaction verified on-chain';
+ $('nextStepAction').textContent=step.button+' →';
+ $('nextStepAction').disabled=busy||checking;
+}
+async function findUsableMandateFor(wallet){
+ if(!ADDRESS.test(wallet)||!config?.configured)return null;
+ const totals=await api('registry','totals');
+ const top=Number(totals?.mandates);
+ if(!Number.isSafeInteger(top))return null;
+ for(let id=top;id>Math.max(0,top-12);id--){
+  try{
+   const m=await api('registry','get_mandate',[id]);
+   if(String(m?.owner||'').toLowerCase()!==wallet.toLowerCase()||!m.active)continue;
+   const usage=await api('gate','mandate_usage',[id]);
+   if(Number(usage)<Number(m.max_votes))return id;
+  }catch{/* Try the next mandate; do not invent a usable ID. */}
+ }
+ return null;
+}
+async function enrichNextContext(ctx){
+ if(!config?.configured)return ctx;
+ if(ctx.method==='create_proposal'&&!ctx.mandateId){
+  // Suggest only a real owned, active mandate with unused cap.
+  try{ctx.mandateId=await findUsableMandateFor(ctx.actor);}catch{}
+ }
+ if(ctx.method==='assess'&&ctx.decision==='ALIGNED'){
+  try{
+   const mandate=await api('registry','get_mandate',[ctx.mandateId]);
+   const delegate=String(mandate?.delegate||'');
+   if(ADDRESS.test(delegate)){
+    const auth=await api('registry','authorization',[ctx.mandateId,ctx.proposalId,delegate]);
+    ctx.delegate=delegate;
+    ctx.direction=String(mandate.direction||'');
+    ctx.authorization=auth?.allowed===true &&
+      String(auth?.decision||'')==='ALIGNED' &&
+      String(auth?.delegate||'').toLowerCase()===delegate.toLowerCase();
+   }else ctx.authorization=false;
+  }catch{ctx.authorization=false;}
+ }
+ return ctx;
+}
+async function postVerifiedNextStep(record,proof){
+ const ctx={
+  actor:record.actor,hash:record.hash,method:record.method,
+  mandateId:record.method==='create_mandate'?proof.id:
+   ['assess','cast_vote'].includes(record.method)?Number(record.args[0]):null,
+  proposalId:record.method==='create_proposal'?proof.id:
+   ['assess','cast_vote'].includes(record.method)?Number(record.args[1]):null,
+  ballotId:record.method==='cast_vote'?proof.id:null,
+  decision:record.method==='assess'?proof.decision:null,
+  authorization:null,
+  createdAt:Date.now()
+ };
+ writeNextContext(ctx);
+ showNextStep(ctx);
+ try{
+  await enrichNextContext(ctx);
+  // Don't rewrite another wallet's suggestion after account changes.
+  if(ctx.actor.toLowerCase()===account.toLowerCase()){
+   writeNextContext(ctx);
+   showNextStep(ctx);
+  }
+ }catch{/* Keep a safe, non-automatic next step. */}
+}
+async function restoreNextStepForWallet(wallet){
+ const seq=++contextLookup;
+ if(!ADDRESS.test(wallet)){clearNextStep();return}
+ let ctx=readNextContext();
+ if(!ctx||ctx.actor.toLowerCase()!==wallet.toLowerCase()){
+  const receipt=readReceipts().find(r=>r.actor?.toLowerCase()===wallet.toLowerCase()&&
+   r.status==='VERIFIED'&&['create_mandate','create_proposal','cast_vote'].includes(r.method)&&
+   Number.isSafeInteger(r.recordId)&&r.recordId>0);
+  ctx=receipt?{
+   actor:wallet,hash:receipt.hash,method:receipt.method,
+   mandateId:receipt.method==='create_mandate'?receipt.recordId:null,
+   proposalId:receipt.method==='create_proposal'?receipt.recordId:null,
+   ballotId:receipt.method==='cast_vote'?receipt.recordId:null,
+   createdAt:receipt.createdAt
+  }:null;
+ }
+ if(!ctx){clearNextStep();return;}
+ showNextStep(ctx);
+ try{
+  const enhanced=await enrichNextContext(ctx);
+  if(seq!==contextLookup||wallet.toLowerCase()!==account.toLowerCase())return;
+  writeNextContext(enhanced);
+  showNextStep(enhanced);
+ }catch{}
+}
+function prefillStepField(form,key,value){
+ if(Number.isSafeInteger(value)&&value>0){
+  const field=$('f_'+form+'_'+key);
+  if(field)field.value=String(value);
+ }
+}
+$('nextStepAction').addEventListener('click',async()=>{
+ if(busy||checking||!nextContext||!nextAction)return;
+ const ctx={...nextContext},next={...nextAction};
+ if(next.target==='history'||next.target==='verify'){
+  showPage(next.target);
+  if(next.target==='verify'&&ctx.method==='assess'){
+   const ix=project.reads.findIndex(r=>r[2]==='authorization');
+   if(ix>=0){
+    $('readMethod').value=String(ix);
+    $('readId').value=String(ctx.mandateId);
+    $('readOther').value=String(ctx.proposalId);
+    $('readActor').value=ctx.delegate||'';
+    updateReadFields();
+   }
+  }
+  return;
+ }
+ showPage('workflow');
+ activateForm(next.target);
+ const form=$('form_'+next.target);
+ if(next.target==='assess'||next.target==='cast_vote'){
+  let mandateId=ctx.mandateId;
+  if(!mandateId&&next.target==='assess'){
+   $('nextStepAction').disabled=true;
+   try{mandateId=await findUsableMandateFor(ctx.actor);}catch{}
+   finally{$('nextStepAction').disabled=false;}
+  }
+  prefillStepField(next.target,'mandate_id',mandateId);
+  prefillStepField(next.target,'proposal_id',ctx.proposalId);
+ }
+ if(next.target==='cast_vote'&&['FOR','AGAINST'].includes(ctx.direction)){
+  const field=$('f_cast_vote_choice');
+  if(field)field.value=ctx.direction;
+  if(ADDRESS.test(ctx.delegate||'') && ctx.delegate.toLowerCase()!==account.toLowerCase()){
+   notice('Switch to Delegate wallet','Only '+ctx.delegate+' can sign this ballot. The form is prepared, but no transaction has been sent.');
+  }
+ }
+ form?.closest('.action')?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
 function renderMeta() {
   document.title=project.name+' — GenLayer Studionet';
   $('brandName').textContent=project.name;
@@ -261,6 +431,8 @@ function updateAccount(v=''){
   activityRequest++;
   activityLimit=30;
   if(!$('history').hidden)renderMyActivity();
+  if(v && !busy && !checking)restoreNextStepForWallet(v);
+  else if(!v)clearNextStep();
   $('walletBtn').textContent=v?v.slice(0,6)+'…'+v.slice(-4)+' · Clear':'Connect wallet';
   $('walletBtn').title=v?'Clear local selection only. Revoke site permission in wallet settings.':'Connect an EIP-1193 wallet';
   $('walletIdentity').textContent=v?'Connected wallet: '+v:'No wallet connected.';
@@ -435,6 +607,7 @@ async function startSign(f) {
       return;
     }
     const sender=createClient({chain:studionet,account,provider:window.ethereum});
+    clearNextStep();
     notice('Confirm in wallet','Review '+f.method+' and the destination contract. No tx has been broadcast yet.',1,'','pending');
     $('txProgress').textContent='Waiting for your wallet signature · no transaction broadcast yet.';
     const hash=await sender.writeContract({address:contract,functionName:f.method,args:values,value:0n});
@@ -511,7 +684,7 @@ async function follow(record){
               sessionStorage.removeItem(pendingKey);
               notice('FINALIZED / VERIFIED',proof.message,3,record.hash,'success');
               $('recheck').hidden=true;
-              await Promise.allSettled([fillDefaultReads(),loadEvidence()]);
+              await Promise.allSettled([fillDefaultReads(),loadEvidence(),postVerifiedNextStep(record,proof)]);
               return;
             }
           }catch(e){
@@ -557,7 +730,7 @@ async function verifyRecord(record){
   }
   if(method==='assess'){
     const x=await read('registry','get_assessment',a[0],a[1]);
-    if(verifyStored(record,x))return{ok:true,message:'Persisted comparative AI outcome: '+x.decision};
+    if(verifyStored(record,x))return{ok:true,decision:x.decision,message:'Persisted comparative AI outcome: '+x.decision};
   }
   if(method==='cast_vote'){
     const x=await read('gate','ballot_for',a[0],a[1]);
@@ -651,6 +824,7 @@ if(saved?.hash){
 }
 refreshConfig().then(()=>{
  loadEvidence();
+ if(account&&!checking&&!loadPending())restoreNextStepForWallet(account);
  if(!$('history').hidden)renderMyActivity();
  const r=loadPending();
  if(r?.hash)follow(r);

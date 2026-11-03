@@ -301,3 +301,21 @@ button.inlineLink{color:#9ae5d2}
  .historyGroup:last-child{grid-column:auto}.historyReceipt{align-items:flex-start}
  .mainNav button{padding:10px 5px;font-size:11px}
 }
+
+/* Context-aware post-verification handoff, classic navy / mint. */
+.nextStep{
+ display:flex;align-items:flex-start;gap:15px;padding:20px 22px;margin-bottom:17px;
+ border:1px solid #418878;border-radius:15px;
+ background:linear-gradient(135deg,#133631 0%,#102529 100%);
+ box-shadow:0 6px 18px rgba(0,0,0,.09);
+}
+.nextStepMark{
+ width:35px;height:35px;flex:none;display:grid;place-items:center;
+ border-radius:50%;background:#9ae5d2;color:#082b28;font-weight:850;font-size:17px;
+}
+.nextStepContent{min-width:0}
+.nextStep h2{font-size:18px;margin:7px 0 7px;color:#e8fff8;letter-spacing:-.025em}
+.nextStep p{margin:0 0 11px;font-size:12px;line-height:1.65;color:#b9d7d2}
+.nextStep .nextStepContext{color:#a4e3d0;font-weight:650;overflow-wrap:anywhere}
+.nextStep button{margin-top:6px}
+@media(max-width:720px){.nextStep{padding:17px 16px;gap:11px}.nextStepMark{width:31px;height:31px}}
