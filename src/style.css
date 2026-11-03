@@ -319,3 +319,13 @@ button.inlineLink{color:#9ae5d2}
 .nextStep .nextStepContext{color:#a4e3d0;font-weight:650;overflow-wrap:anywhere}
 .nextStep button{margin-top:6px}
 @media(max-width:720px){.nextStep{padding:17px 16px;gap:11px}.nextStepMark{width:31px;height:31px}}
+
+/* Clear, human-readable completion and automatic receipt history. */
+.txReceiptSummary{
+ margin-top:16px;padding:15px;border-radius:11px;background:#13332e;
+ border:1px solid #488e79;
+}
+.txReceiptSummary strong{display:block;margin:9px 0 5px;color:#eafff6;font-size:15px;line-height:1.4}
+.txReceiptSummary p{margin:0 0 10px;color:#bde4d7;font-size:11px;line-height:1.6}
+.txReceiptSummary button{margin-top:7px;font-size:12px}
+.txReceiptSummary[hidden]{display:none!important}

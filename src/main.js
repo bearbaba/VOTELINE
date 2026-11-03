@@ -18,6 +18,7 @@ const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const CHAIN = 61999;
 let config = null, account = '', busy = false, checking = false;
 let activityRequest=0, activityLimit=30;
+let resumeTimeout=null;
 let nextContext=null, nextAction=null, contextLookup=0;
 
 function notice(title, detail, phase=0, hash='', state='idle') {
@@ -30,6 +31,7 @@ function notice(title, detail, phase=0, hash='', state='idle') {
   live.hidden=state!=='pending';
   if(state!=='pending')live.textContent='';
   document.querySelector('.activity').dataset.txState=state;
+  if(state!=='success')$('txReceiptSummary').hidden=true;
 }
 function setBusy(v) {
   busy=v;
@@ -51,6 +53,41 @@ for(const e of document.querySelectorAll('[data-page]'))
 window.addEventListener('hashchange',()=>showPage(location.hash.slice(1)||'overview'));
 
 
+function stopResumeTimer(){
+ if(resumeTimeout!==null){clearTimeout(resumeTimeout);resumeTimeout=null;}
+}
+function scheduleAutomaticResume(){
+ stopResumeTimer();
+ if(!loadPending())return;
+ resumeTimeout=setTimeout(()=>{
+   resumeTimeout=null;
+   const pending=loadPending();
+   if(pending?.hash && !checking && !busy && !document.hidden)follow(pending);
+   else if(pending?.hash)scheduleAutomaticResume();
+ },12000);
+}
+function showVerifiedReceipt(record,proof){
+ const readable={
+  create_mandate:'Delegation mandate created',
+  create_proposal:'Proposal created',
+  assess:'AI consensus assessment stored',
+  cast_vote:'Delegated vote recorded',
+  update_mandate:'Delegation updated',
+  revoke_mandate:'Delegation revoked'
+ };
+ const id=Number.isSafeInteger(proof?.id)&&proof.id>0?
+    (record.method==='create_mandate'?'Mandate #':
+     record.method==='create_proposal'?'Proposal #':
+     record.method==='cast_vote'?'Ballot #':'Record #')+proof.id:null;
+ const verdict=record.method==='assess'?String(proof.decision||''):'';
+ $('txReceiptTitle').textContent=readable[record.method]||'Action completed on-chain';
+ $('txReceiptDetails').textContent=
+   [id,verdict?('AI verdict: '+verdict):null,
+    'Execution finalized · Contract state verified',
+    record.hash.slice(0,11)+'…'+record.hash.slice(-6)].filter(Boolean).join(' · ');
+ $('txReceiptSummary').hidden=false;
+}
+$('txHistoryOpen').addEventListener('click',()=>showPage('history'));
 function readReceipts(){
  try{
   const data=JSON.parse(localStorage.getItem(receiptKey)||'[]');
@@ -614,20 +651,34 @@ async function startSign(f) {
     if(!/^0x[0-9a-fA-F]{64}$/.test(hash||''))throw Error('No valid transaction hash returned');
     record.hash=hash;
     record.startedAt=Date.now();
-    sessionStorage.setItem(pendingKey,JSON.stringify(record));
+    storePending(record);
     saveReceipt(record,'PENDING');
     await follow(record);
   }catch(e){
     const pending=loadPending();
     if(pending?.hash){
-      notice('Tracking interrupted','Transaction hash is saved; status has not been verified. Tracking can resume without resubmitting.',2,pending.hash,'paused');
-      $('recheck').hidden=false;
+      notice('Temporary tracking interruption','Your transaction is saved. Tracking will resume automatically using the same hash; no duplicate signing.',2,pending.hash,'paused');
+      scheduleAutomaticResume();
     }else notice('No verified write',e?.message||String(e),0,'','error');
   }finally{
     if(!checking)setBusy(false);
   }
 }
-function loadPending(){try{return JSON.parse(sessionStorage.getItem(pendingKey)||'null')}catch{return null}}
+function loadPending(){
+ try{
+  const raw=localStorage.getItem(pendingKey)||sessionStorage.getItem(pendingKey)||'null';
+  const tx=JSON.parse(raw);
+  return tx && /^0x[0-9a-fA-F]{64}$/.test(tx.hash||'')?tx:null;
+ }catch{return null}
+}
+function storePending(record){
+ try{localStorage.setItem(pendingKey,JSON.stringify(record));}catch{}
+ try{sessionStorage.setItem(pendingKey,JSON.stringify(record));}catch{}
+}
+function clearPending(){
+ try{localStorage.removeItem(pendingKey);}catch{}
+ try{sessionStorage.removeItem(pendingKey);}catch{}
+}
 function restorePendingForm(record){
  const f=project.forms.find(x=>x.key===record.form);
  if(!f||!Array.isArray(record.args))return;
@@ -640,7 +691,7 @@ function restorePendingForm(record){
 }
 async function follow(record){
   if(checking || !record?.hash)return;
-  checking=true;setBusy(true);$('recheck').hidden=true;
+  checking=true;stopResumeTimer();setBusy(true);
   const started=Number.isFinite(record.startedAt)?record.startedAt:Date.now();
   let stage='Awaiting GenLayer node receipt';
   const renderProgress=()=>{
@@ -667,7 +718,7 @@ async function follow(record){
       const phase=classifyTx(response);
       if(phase==='error'){
         saveReceipt(record,'FAILED');
-        sessionStorage.removeItem(pendingKey);
+        clearPending();
         notice('Transaction did not complete','Finalized execution failed or the transaction was canceled. The original hash remains available for investigation.',2,record.hash,'error');
         $('recheck').hidden=true;
         return;
@@ -681,9 +732,9 @@ async function follow(record){
             const proof=await verifyRecord(record);
             if(proof.ok){
               saveReceipt(record,'VERIFIED',proof.id);
-              sessionStorage.removeItem(pendingKey);
+              clearPending();
               notice('FINALIZED / VERIFIED',proof.message,3,record.hash,'success');
-              $('recheck').hidden=true;
+              showVerifiedReceipt(record,proof);
               await Promise.allSettled([fillDefaultReads(),loadEvidence(),postVerifiedNextStep(record,proof)]);
               return;
             }
@@ -694,24 +745,19 @@ async function follow(record){
           await new Promise(res=>setTimeout(res,3000));
         }
         saveReceipt(record,'UNVERIFIED');
-        notice('Finalized · record not verified','Execution finalized, but the stored state could not be confirmed. The hash is saved; do not submit again.',3,record.hash,'paused');
-        $('recheck').textContent='Resume verification';
-        $('recheck').hidden=false;
+        notice('Finalized · verifying stored record','Execution finalized. Stored-state verification is delayed; the website will retry automatically using the saved transaction hash.',3,record.hash,'paused');
         return;
       }
       await new Promise(res=>setTimeout(res,4000));
     }
-    notice('Tracking paused · still unresolved','No finalized result was verified. The transaction hash is saved; resume tracking the same hash, never sign a duplicate.',2,record.hash,'paused');
-    $('recheck').textContent='Resume automatic tracking';
-    $('recheck').hidden=false;
+    notice('Awaiting finality · tracking will continue','The hash is stored and automatic checking will resume. Do not sign the same action twice.',2,record.hash,'paused');
   }catch(e){
-    notice('Connection interrupted','The transaction hash is preserved. Resume tracking without sending a second transaction.',2,record.hash,'paused');
-    $('recheck').textContent='Resume automatic tracking';
-    $('recheck').hidden=false;
+    notice('Network connection interrupted','The transaction hash is preserved. The website will automatically retry without resubmitting.',2,record.hash,'paused');
   }finally{
     clearInterval(ticker);
     checking=false;
     setBusy(false);
+    if(loadPending()?.hash)scheduleAutomaticResume();
   }
 }
 async function verifyRecord(record){
@@ -813,7 +859,6 @@ async function generateWorkerDraft(role) {
     notice('Worker artifact generated','This is actual deterministic browser code output, not an AI verdict. Review and sign with the assigned worker wallet.');
   }catch(e){notice('Could not generate artifact',e.message)}
 }
-$('recheck').onclick=async()=>{const record=loadPending();if(record)await follow(record);else notice('No pending transaction','No unresolved transaction hash is stored.')};
 renderMeta();renderForms();renderReads();showPage(['overview','workflow','history','verify'].includes(location.hash.slice(1))?location.hash.slice(1):'overview');
 const saved=loadPending();
 if(saved?.hash){
@@ -833,6 +878,10 @@ refreshConfig().then(()=>{
 window.ethereum?.request?.({method:'eth_accounts'}).then(a=>{
  if(!account && ADDRESS.test(a?.[0]||''))updateAccount(a[0]);
 }).catch(()=>{});
+window.addEventListener('online',()=>{
+ const tx=loadPending();
+ if(tx?.hash && !busy && !checking)follow(tx);
+});
 window.addEventListener('visibilitychange',()=>{
  if(!document.hidden && !checking){
   const r=loadPending();

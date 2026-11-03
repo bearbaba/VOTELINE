@@ -24,6 +24,8 @@ check(html.includes('id="historyList"') && html.includes('data-page="history"'),
   'My Activity page missing from the public website');
 check(html.includes('id="nextStep"') && html.includes('id="nextStepAction"'),
   'Verified next-step guidance missing from the public website');
+check(html.includes('id="txReceiptSummary"') && !html.includes('id="recheck"'),
+  'Automatic receipt UI missing or obsolete manual transaction recheck still shown');
 const config=JSON.parse(await get('/api/state?op=config'));
 check(config.configured&&config.chainId===61999,'Config missing or wrong chain');
 check(config.registry.toLowerCase()===expected.registry.toLowerCase(),'Registry address mismatch');

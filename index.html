@@ -94,7 +94,7 @@
             <button type="button" data-flow="cast_vote"><span>04</span> Vote</button>
           </nav>
           <div id="forms"></div>
-          <div class="demoNote"><strong>Recording a demo?</strong> Select <button type="button" class="inlineLink" data-focus="create_proposal">Proposal</button>, use <em>Load example</em>, and sign one real testnet transaction. Existing AI evidence is on the Overview page.</div>
+          <div class="demoNote">Verified transactions appear automatically in <button type="button" class="inlineLink" data-page="history">My Activity</button>. No manual transaction check required.</div>
         </div>
         <aside class="activity" aria-label="Transaction status" role="status">
           <div class="eyebrow">TRANSACTION STATUS</div>
@@ -108,7 +108,12 @@
             <div id="phase3"><span>03</span> State verified</div>
           </div>
           <a id="txExplorer" class="textLink" target="_blank" rel="noopener" hidden>View transaction ↗</a>
-          <button id="recheck" class="outline" hidden>Recheck same transaction</button>
+          <div id="txReceiptSummary" class="txReceiptSummary" hidden>
+            <span class="eyebrow">CONFIRMED ON-CHAIN</span>
+            <strong id="txReceiptTitle">Transaction recorded</strong>
+            <p id="txReceiptDetails"></p>
+            <button id="txHistoryOpen" type="button" class="outline">Open My Activity →</button>
+          </div>
           <p id="walletIdentity" class="small">No wallet connected.</p>
         </aside>
       </div>
