@@ -720,7 +720,6 @@ async function follow(record){
         saveReceipt(record,'FAILED');
         clearPending();
         notice('Transaction did not complete','Finalized execution failed or the transaction was canceled. The original hash remains available for investigation.',2,record.hash,'error');
-        $('recheck').hidden=true;
         return;
       }
       if(phase==='success'){
