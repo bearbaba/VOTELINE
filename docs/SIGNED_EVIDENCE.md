@@ -47,6 +47,8 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 **Post-REVIEW rollback readback (Nov 3, 2026):** After the finalized `cast_vote(1,3,"FOR")` ERROR / ROLLBACK, the operator read `DelegatedBallot.stats()` and received `{"ballots":1,"registry":"0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23"}`. The valid ballot remains persisted and REVIEW did not create a second ballot.
 
+**Post-wrong-signer and wrong-direction readback (Nov 3, 2026):** After finalized ERROR / ROLLBACK attempts `cast_vote(1,1,"AGAINST")` by Delegate and `cast_vote(1,1,"FOR")` by Member, operator read `DelegatedBallot.stats()` = `{"ballots":1,"registry":"0x84F6D80087242D0eb2cf10c5D091F8c5C9F58C23"}`. The original valid ballot remained the only ballot.
+
 ## Next tests — NOT YET PERFORMED
 
 - Explicit commercial/budget violation → target CONFLICT, denied authorization.
