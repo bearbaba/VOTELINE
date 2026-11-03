@@ -33,6 +33,8 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 | Delegate `cast_vote(1,1,"AGAINST")` → wrong-direction negative test | [0xfd1d…e25c](https://explorer-studio.genlayer.com/tx/0xfd1d18d745aea46750a8ba146a04f67a9cd7b07bf6377ee03e99cc6c7a61e25c) | FINALIZED / **ERROR / ROLLBACK**, Consensus Accepted | Exact error: `delegate or direction mismatch`. The authorized direction is FOR. Post-rollback `stats()` readback **PENDING**. |
 
+| Member wallet `0x4C7c…8Dcb` attempts `cast_vote(1,1,"FOR")` instead of authorized Delegate | [0x2f7a…2613](https://explorer-studio.genlayer.com/tx/0x2f7a62930acfc9879f4e098534fd03c3bf78bab2be16e9505def6bf9e6c92613) | FINALIZED / **ERROR / ROLLBACK**, Consensus Accepted | `no current delegated authorization`. Wrong signer is rejected despite ALIGNED proposal; state readback after wrong-signer and direction attempts remains **PENDING**. |
+
 **Result:** Signed positive cross-contract ballot and one signed duplicate-rejection negative test are supported. Consensus Accepted on a rejected transaction does **not** imply the write succeeded. The error is the expected test outcome.
 
 **Authorization readback (Nov 3, 2026):** `MandateRegistry.authorization(1,2,0xD6b8A3A5eB329410D9504784812b8569afA8C2aF)` returned `allowed=false`, `decision=CONFLICT`, `direction=FOR`, `max_votes=1`, `version=1`. This is a successful **read-only deny** check. The signed `DelegatedBallot.cast_vote(1,2,"FOR")` attempt subsequently **rolled back** with `no current delegated authorization` (see transaction table). Post-rollback `stats()` readback verified `ballots=1`.
