@@ -37,6 +37,8 @@ The transactions, verdicts, and reads below were reported from GenLayer Studio b
 
 **REVIEW persistence readback (Nov 3, 2026):** `MandateRegistry.get_assessment(1,3)` returned `{"decision":"REVIEW","mandate_id":1,"mandate_version":1,"proposal_id":3}`. This confirms that the verdict returned by finalized `assess(1,3)` is stored on-chain. The `authorization(1,3,Delegate)` denial is pending the next read-only check.
 
+**REVIEW authorization readback (Nov 3, 2026):** `MandateRegistry.authorization(1,3,0xD6b8A3A5eB329410D9504784812b8569afA8C2aF)` returned `allowed=false`, `decision=REVIEW`, `direction=FOR`, `max_votes=1`, `version=1`, correctly denying a proposal lacking required policy evidence. A signed `DelegatedBallot.cast_vote(1,3,"FOR")` rejection and subsequent state readback are still pending.
+
 ## Next tests — NOT YET PERFORMED
 
 - Explicit commercial/budget violation → target CONFLICT, denied authorization.
