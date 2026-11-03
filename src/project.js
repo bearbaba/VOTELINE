@@ -11,8 +11,8 @@ export const project = {
    proposal:{title:"Open-source school workshop",details:"Provide free programming workshops and openly licensed material to local students. Budget is 300 units for classroom equipment and transport. No sponsorship, advertising, paid access or resale.",budget_units:"300"}
  },
  forms:[
-  {key:"create_mandate",title:"1. Sign delegation",subtitle:"Member wallet → Registry. Sign a bounded, versioned mandate.",scope:"registry",method:"create_mandate",
-  fields:[["delegate","Delegate wallet","address"],["direction","Vote direction","select:FOR,AGAINST"],["policy","Signed voting policy","textarea"],["max_votes","Maximum ballot uses (1–20)","number"]],preset:"mandate"},
+  {key:"create_mandate",title:"1. Sign delegation",subtitle:"Member wallet → Registry. Sign a bounded, versioned mandate. The vote cap counts different proposals this mandate can vote on — not the number of users.",scope:"registry",method:"create_mandate",
+  fields:[["delegate","Delegate wallet","address"],["direction","Vote direction","select:FOR,AGAINST"],["policy","Signed voting policy","textarea"],["max_votes","Maximum proposals this delegation may vote on (1–20)","number"]],preset:"mandate"},
   {key:"create_proposal",title:"2. Freeze a proposal",subtitle:"Proposer wallet → Registry. Details are immutable after signing.",scope:"registry",method:"create_proposal",
   fields:[["title","Proposal title","text"],["details","Detailed scope","textarea"],["budget_units","Declared budget units","number"]],preset:"proposal"},
   {key:"assess",title:"3. AI consensus review",subtitle:"Any wallet → Registry. Frozen mandate and proposal compared by independent validators.",scope:"registry",method:"assess",
